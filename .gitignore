@@ -11,6 +11,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 logs/
+data_migration/output
 
 # Mac
 .DS_Store

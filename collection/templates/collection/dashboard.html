@@ -1,0 +1,486 @@
+{% extends 'collection/app_base.html' %}
+{% load static %}
+
+{% block title %}{{ caliber.name }} Collection{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --theme-color: {{ caliber.theme_color|default:"#3a7ca5" }}; /* Default theme color */
+    }
+    body {
+        background-color: #f8f9fa;
+    }
+    .header {
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,.08);
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .site-logo {
+        height: 40px;
+        margin-right: 12px;
+    }
+    .caliber-selector {
+        display: flex;
+        align-items: center;
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        color: var(--theme-color);
+        background-color: rgba(58, 124, 165, 0.1);
+        border-radius: 0.25rem;
+        margin-right: 1rem;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .caliber-selector:hover {
+        background-color: rgba(58, 124, 165, 0.2);
+        text-decoration: none;
+        color: var(--theme-color);
+    }
+    .caliber-selector img {
+        height: 20px;
+        margin-right: 8px;
+    }
+    .main-nav-link {
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        color: #495057;
+        transition: all 0.2s;
+        text-decoration: none;
+        border-radius: 0.25rem;
+    }
+    .main-nav-link:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #212529;
+    }
+    .main-nav-link.active {
+        background-color: rgba(58, 124, 165, 0.1);
+        color: var(--theme-color);
+    }
+    .dashboard-card {
+        border-radius: 0.5rem;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,.08);
+    }
+    .browse-card {
+        padding: 1.5rem;
+    }
+    .browse-level {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-left: 10px;
+    }
+    .browse-level-indent {
+        padding-left: 30px;
+    }
+    .browse-level-indent-2 {
+        padding-left: 50px;
+    }
+    .browse-level-indent-3 {
+        padding-left: 70px;
+    }
+    .browse-level-indent-4 {
+        padding-left: 90px;
+    }
+    .browse-level-indent-5 {
+        padding-left: 110px;
+    }
+    .browse-icon {
+        color: var(--theme-color);
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+    .browse-text {
+        flex-grow: 1;
+    }
+    .browse-count {
+        display: flex;
+        align-items: center;
+    }
+    .browse-count-item {
+        background-color: rgba(58, 124, 165, 0.1);
+        color: var(--theme-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+    .browse-count-image {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.9rem;
+    }
+    .browse-hierarchy {
+        border-left: 1px dashed #dee2e6;
+        margin-left: 15px;
+    }
+    .artifact-container {
+        background-color: rgba(58, 124, 165, 0.05);
+        border-left: 3px solid var(--theme-color);
+        border-radius: 4px;
+        padding: 10px;
+        margin: 15px 0 15px 10px;
+    }
+    .table-responsive {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .action-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    .action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,.08);
+        text-decoration: none;
+    }
+    .action-icon {
+        font-size: 2rem;
+        color: var(--theme-color);
+        margin-bottom: 1rem;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% comment %} {% block header %}
+<!-- Single Row Header -->
+<div class="header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-lg-4 d-flex align-items-center">
+                <a href="{% url 'landing' %}" class="d-flex align-items-center text-decoration-none me-3">
+                    {% if caliber.image %}
+                    <img src="{{ caliber.image.url }}" alt="{{ caliber.name }} Logo" class="site-logo">
+                    {% else %}
+                    <img src="{% static 'images/cartridge_logo.png' %}" alt="Collection Logo" class="site-logo">
+                    {% endif %}
+                    <h5 class="mb-0">Entire Collection</h5>
+                </a>
+                            
+                <div class="dropdown">
+                    <a href="#" class="caliber-selector" data-bs-toggle="dropdown">
+                        <h5>{{ caliber.code }}</h5>
+                        <i class="bi bi-chevron-down ms-2"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for cal in all_calibers %}
+                            <li>
+                                <a class="dropdown-item {% if cal.code == caliber.code %}active{% endif %} {% if not cal.is_active %}disabled{% endif %}" 
+                                   href="{% if cal.is_active %}{% url 'dashboard' cal.code %}{% else %}#{% endif %}">
+                                    {{ cal.name }}{% if not cal.is_active %} (Coming Soon){% endif %}
+                                </a>
+                            </li>
+                        {% endfor %}
+                        <div class="dropdown-divider"></div>
+                        <li><a class="dropdown-item" href="{% url 'landing' %}">Change Caliber</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 d-flex align-items-center justify-content-center">
+                <a href="{% url 'dashboard' caliber.code %}" class="main-nav-link active me-3">
+                    <i class="bi bi-house-door"></i> Dashboard
+                </a>
+                
+                <a href="{% url 'country_list' caliber.code %}" class="main-nav-link me-3">
+                    <i class="bi bi-globe"></i> Browse Collection
+                </a>
+            </div>
+            
+            <div class="col-lg-4 d-flex justify-content-end">
+                <form action="{% url 'record_search' caliber.code %}" method="get" class="d-flex me-2" style="width: 170px;">
+                    <input type="text" name="id" class="form-control" placeholder="ID (e.g. L123)">
+                    <button class="btn btn-success" type="submit">Go</button>
+                </form>
+                
+                <form action="{% url 'headstamp_search' caliber.code %}" method="get" class="d-flex me-2" style="width: 220px;">
+                    <input type="text" name="q" class="form-control" placeholder="Search headstamps...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i> Admin</a></li>
+                        <li><a class="dropdown-item" href="{% url 'documentation' %}"><i class="bi bi-question-circle me-2"></i> Documentation</a></li>
+                        <li><a class="dropdown-item" href="{% url 'support' %}"><i class="bi bi-telephone me-2"></i> Support</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% endcomment %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-0">{{ caliber.name }} Collection</h2>
+            <p class="text-muted">Dashboard overview of your collection</p>
+        </div>
+    </div>
+    
+    <!-- Top Section: Browse + Recent Items -->
+    <div class="row mb-4">
+        <!-- Browse Collection Card -->
+        <div class="col-lg-6 mb-3">
+            <div class="card dashboard-card browse-card">
+                <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom-0">
+                    <h5 class="mb-0">Browse Collection</h5>
+                    <a href="{% url 'country_list' caliber.code %}" class="btn btn-sm btn-outline-primary">Start Browsing</a>
+                </div>
+                
+                <div class="browse-hierarchy p-3">
+                    <!-- Organizational structure -->
+                    <div class="browse-level">
+                        <i class="bi bi-diagram-3 browse-icon"></i>
+                        <span class="browse-text"><strong>Countries</strong></span>
+                        <div class="browse-count">
+                            <span class="browse-count-item">{{ stats.countries }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="browse-level browse-level-indent">
+                        <i class="bi bi-building browse-icon"></i>
+                        <span class="browse-text">Manufacturers</span>
+                        <div class="browse-count">
+                            <span class="browse-count-item">{{ stats.manufacturers }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="browse-level browse-level-indent-2">
+                        <i class="bi bi-record-circle browse-icon"></i>
+                        <span class="browse-text">Headstamps</span>
+                        <div class="browse-count">
+                            <span class="browse-count-item">{{ stats.headstamps }}</span>
+                            <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.headstamp_images }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Physical artifacts in a single container -->
+                    <div class="artifact-container">
+                        <div class="browse-level browse-level-indent-3">
+                            <i class="bi bi-battery browse-icon"></i>
+                            <span class="browse-text">Loads</span>
+                            <div class="browse-count">
+                                <span class="browse-count-item">{{ stats.loads }}</span>
+                                <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.load_images }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="browse-level browse-level-indent-4">
+                            <i class="bi bi-arrow-repeat browse-icon"></i>
+                            <span class="browse-text">Variations (Load)</span>
+                            <div class="browse-count">
+                                <span class="browse-count-item">{{ stats.load_variations }}</span>
+                                <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.load_variation_images }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="browse-level browse-level-indent-4">
+                            <i class="bi bi-calendar-date browse-icon"></i>
+                            <span class="browse-text">Dates/Lots</span>
+                            <div class="browse-count">
+                                <span class="browse-count-item">{{ stats.dates }}</span>
+                                <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.date_images }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="browse-level browse-level-indent-5">
+                            <i class="bi bi-arrow-repeat browse-icon"></i>
+                            <span class="browse-text">Variations (Date)</span>
+                            <div class="browse-count">
+                                <span class="browse-count-item">{{ stats.date_variations }}</span>
+                                <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.date_variation_images }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="browse-level">
+                            <i class="bi bi-box-seam browse-icon"></i>
+                            <span class="browse-text">Boxes</span>
+                            <div class="browse-count">
+                                <span class="browse-count-item">{{ stats.boxes }}</span>
+                                <span class="browse-count-image"><i class="bi bi-camera"></i> {{ stats.box_images }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white text-center">
+                    <p class="text-muted mb-0"><small>The hierarchical organization of the collection</small></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Section Moved Up -->
+        <div class="col-lg-6">
+            <div class="card dashboard-card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Headstamps</h5>
+                    <a href="{% url 'headstamp_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Manufacturer</th>
+                                <th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for headstamp in recent_headstamps %}
+                            <tr>
+                                <td>{{ headstamp.code }}</td>
+                                <td>{{ headstamp.manufacturer.code }}</td>
+                                <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.name|default:"-"|truncatechars:30 }}</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No headstamps available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="h4 mb-3">Quick Actions</h2>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'add_load' caliber.code %}" class="action-card d-block">
+                <i class="bi bi-plus-circle action-icon"></i>
+                <h3 class="h5">Add New Load</h3>
+                <p class="text-muted mb-0">Record a new cartridge</p>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'add_box' caliber.code %}" class="action-card d-block">
+                <i class="bi bi-box action-icon"></i>
+                <h3 class="h5">Add New Box</h3>
+                <p class="text-muted mb-0">Record a new box or label</p>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'advanced_search' caliber.code %}" class="action-card d-block">
+                <i class="bi bi-filter-circle action-icon"></i>
+                <h3 class="h5">Advanced Search</h3>
+                <p class="text-muted mb-0">Filter collection by criteria</p>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'upload_images' caliber.code %}" class="action-card d-block">
+                <i class="bi bi-camera action-icon"></i>
+                <h3 class="h5">Upload Images</h3>
+                <p class="text-muted mb-0">Add images to artifacts</p>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Recent Loads and Boxes -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Loads</h5>
+                    <a href="{% url 'load_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Headstamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for load in recent_loads %}
+                            <tr>
+                                <td>{{ load.cart_id }}</td>
+                                <td><a href="{% url 'load_detail' caliber.code load.pk %}">{{ load.load_type.display_name }}</a></td>
+                                <td>{{ load.headstamp.code }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No loads available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Boxes</h5>
+                    <a href="{% url 'box_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Parent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for box in recent_boxes %}
+                            <tr>
+                                <td>{{ box.bid }}</td>
+                                <td><a href="{% url 'box_detail' caliber.code box.pk %}">{{ box.description|default:"-"|truncatechars:20 }}</a></td>
+                                <td>{{ box.get_art_type_display }}</td>
+                                <td>{{ box.get_parent_display }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No boxes available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-light py-3 mt-4">
+    <div class="container text-center">
+        <p class="text-muted mb-0">&copy; {% now "Y" %} Cartridge Collection. All rights reserved.</p>
+    </div>
+</footer>
+{% endblock %}
