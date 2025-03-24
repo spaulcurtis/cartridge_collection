@@ -1,9 +1,9 @@
-{% extends 'collection/base.html' %}
+{% extends 'collection/app_base.html' %}
 {% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block header %}
+{% comment %} {% block header %}
 <!-- Single Row Header -->
 <div class="header">
     <div class="container-fluid">
@@ -65,7 +65,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %} {% endcomment %}
 
 {% block content %}
 <div class="container py-5">

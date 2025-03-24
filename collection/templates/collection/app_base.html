@@ -179,7 +179,7 @@
                 </a>
                 
                 {% if caliber %}
-                <img src="{% if caliber.image %}{{ caliber.image.url }}{% else %}{% static 'images/cartridge_logo.png' %}{% endif %}" 
+                <img src="{% if caliber.image %}{{ caliber.image.url }}{% else %}{% static 'collection/images/cartridge_logo.png' %}{% endif %}" 
                 alt="{{ caliber.name|default:'Collection' }} Logo" class="site-logo">
 
                 <div class="dropdown">
