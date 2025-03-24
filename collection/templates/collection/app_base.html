@@ -1,0 +1,91 @@
+{% extends 'collection/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Header -->
+<div class="header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-lg-4 d-flex align-items-center">
+                <a href="{% url 'landing' %}" class="d-flex align-items-center text-decoration-none me-3">
+                    <img src="{% if caliber.image %}{{ caliber.image.url }}{% else %}{% static 'images/cartridge_logo.png' %}{% endif %}" 
+                         alt="{{ caliber.name|default:'Collection' }} Logo" class="site-logo">
+                    <h5 class="mb-0">Cartridge Collection</h5>
+                </a>
+                
+                {% if caliber %}
+                <div class="dropdown">
+                    <a href="#" class="caliber-selector" data-bs-toggle="dropdown">
+                        {{ caliber.name }}
+                        <i class="bi bi-chevron-down ms-2"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for cal in all_calibers %}
+                            <li>
+                                <a class="dropdown-item {% if cal.code == caliber.code %}active{% endif %} {% if not cal.is_active %}disabled{% endif %}" 
+                                   href="{% if cal.is_active %}{% url 'dashboard' cal.code %}{% else %}#{% endif %}">
+                                    {{ cal.name }}{% if not cal.is_active %} (Coming Soon){% endif %}
+                                </a>
+                            </li>
+                        {% endfor %}
+                        <div class="dropdown-divider"></div>
+                        <li><a class="dropdown-item" href="{% url 'landing' %}">Change Caliber</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-lg-4 d-flex align-items-center justify-content-center">
+                {% if caliber %}
+                <a href="{% url 'dashboard' caliber.code %}" class="main-nav-link active me-3">
+                    <i class="bi bi-house-door"></i> Dashboard
+                </a>
+                
+                <a href="{% url 'country_list' caliber.code %}" class="main-nav-link active me-3">
+                    <i class="bi bi-globe"></i> Browse Collection
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="col-lg-4 d-flex justify-content-end">
+                {% if caliber %}
+                <form action="{% url 'record_search' caliber.code %}" method="get" class="d-flex me-2" style="width: 170px;">
+                    <input type="text" name="id" class="form-control" placeholder="ID (e.g. L123)">
+                    <button class="btn btn-success" type="submit">Go</button>
+                </form>
+                
+                <form action="{% url 'headstamp_search' caliber.code %}" method="get" class="d-flex me-2" style="width: 220px;">
+                    <input type="text" name="q" class="form-control" placeholder="Search headstamps...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+                {% endif %}
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i> Admin</a></li>
+                        <li><a class="dropdown-item" href="{% url 'documentation' %}"><i class="bi bi-question-circle me-2"></i> Documentation</a></li>
+                        <li><a class="dropdown-item" href="{% url 'support' %}"><i class="bi bi-telephone me-2"></i> Support</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main content -->
+<div class="container py-4">
+    {% block app_content %}{% endblock %}
+</div>
+
+<!-- Footer -->
+<footer class="bg-light py-3 mt-4">
+    <div class="container text-center">
+        <p class="text-muted mb-0">&copy; {% now "Y" %} Cartridge Collection. All rights reserved.</p>
+    </div>
+</footer>
+{% endblock %}

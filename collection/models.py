@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 
 # ===============================
@@ -164,9 +165,20 @@ class Caliber(models.Model):
     name = models.CharField(max_length=100)  # e.g., "9mm Parabellum", ".45 ACP"
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='calibers/', blank=True, null=True)
+    theme_color = models.CharField(max_length=20, blank=True, null=True, help_text="Hex color code, e.g. #3a7ca5")
+    order = models.PositiveIntegerField(default=0, help_text="Display order on landing page")
     
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = slugify(self.name)
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ['order', 'name']
 
 class Country(BaseEntity):
     """Country model - represents countries of origin"""
@@ -541,6 +553,69 @@ class Box(BaseCollectionItem):
             self.bid = f"B{next_id}"
         super().save(*args, **kwargs)
     
+    def parent_caliber(self):
+        """
+        Determines which caliber this box belongs to by traversing the parent relationship.
+        """
+        from django.contrib.contenttypes.models import ContentType
+        from .models import Country, Manufacturer, Headstamp, Load, Date, Variation, Caliber
+        
+        if not hasattr(self, 'content_type') or not hasattr(self, 'object_id'):
+            return None
+        
+        parent_model = self.content_type.model_class()
+        
+        try:
+            parent_obj = parent_model.objects.get(pk=self.object_id)
+        except parent_model.DoesNotExist:
+            return None
+        
+        # Find the caliber based on the parent object type
+        if parent_model == Country:
+            return parent_obj.caliber
+        elif parent_model == Manufacturer:
+            return parent_obj.country.caliber
+        elif parent_model == Headstamp:
+            return parent_obj.manufacturer.country.caliber
+        elif parent_model == Load:
+            return parent_obj.headstamp.manufacturer.country.caliber
+        elif parent_model == Date:
+            return parent_obj.load.headstamp.manufacturer.country.caliber
+        elif parent_model == Variation:
+            # Handle both types of variations
+            if parent_obj.load:
+                return parent_obj.load.headstamp.manufacturer.country.caliber
+            elif parent_obj.date:
+                return parent_obj.date.load.headstamp.manufacturer.country.caliber
+        
+        return None
+
+    def get_parent_display(self):
+        """
+        Returns a display string for the parent object.
+        """
+        if not hasattr(self, 'content_type') or not hasattr(self, 'object_id'):
+            return "Unknown"
+        
+        parent_model = self.content_type.model_class()
+        
+        try:
+            parent_obj = parent_model.objects.get(pk=self.object_id)
+            
+            # First check for cart_id which is used by Load, Date, and Variation
+            if hasattr(parent_obj, 'cart_id') and parent_obj.cart_id:
+                return parent_obj.cart_id
+            # Then name for Country, possibly Manufacturer 
+            elif hasattr(parent_obj, 'name') and parent_obj.name:
+                return parent_obj.name
+            # Then code for Headstamp, Manufacturer
+            elif hasattr(parent_obj, 'code') and parent_obj.code:
+                return parent_obj.code
+            else:
+                return f"{parent_model.__name__} #{parent_obj.pk}"
+        except parent_model.DoesNotExist:
+            return "Not Found"
+        
     class Meta:
         ordering = ['bid']
 
