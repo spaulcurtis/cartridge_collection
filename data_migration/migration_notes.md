@@ -74,6 +74,8 @@ Flexible source annotation: The linking tables allow notes about the specific re
 
 I migrated the country records by using "migrate_country.py".  I then manually added the full_name.  I deleted United Arab Emerates (70) in favor of the UAE (74).  When migrating manufacturers, we need to point 70 to 74 (or was it vice versa?)
 
+This was a mistake.  CLEAN UP COUNTRY ISSUES AFTER MIGRATION.
+
 ## Migrating Manufacturer
 
 The new database schema requires country/man code compbo to be unique.  It wasn't, since US had two RMIs.  I renamed one to RMI2 (it had no children).  The AI said it changed the program to gracefully handle this and just note in log file, but I don't think it did correctly.
@@ -87,5 +89,23 @@ DELETE FROM collection_manufacturer;
 DELETE FROM sqlite_sequence WHERE name='collection_manufacturer';
 
 The third line resets the auto-index counter so the next import will start at 1.
+
+## Current Status
+
+The migration scripts are not finalized, but good enough to import data for development down to Load.  Still need Date, Variation, and Box migration.
+For Poppy's real data import:
+
+1. Clean up source database Load Type ("HS Only" for anything with blank)
+2. rename the second SMI to SMI2
+3. Leave contries
+4. Use data_migration scripts to pull in country and manufacturer.  If you redo, don't forget to reset indexes.
+5. Use web app to pull in Headstamp and Load
+
+Longer term migration clean up
+1. Fix default for load_type
+2. Pull all migration into web app (vs data migration scripts)
+3. Correctly handle "replace" including reseting indexes.
+4. Add spreadsheets and other formats
+
 
 

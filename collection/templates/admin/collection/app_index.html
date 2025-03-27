@@ -1,0 +1,57 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+    <h1>Cartridge Collection Administration</h1>
+
+    <div class="app-list">
+
+        <!-- General Information -->
+        <div>
+            <h2>General Information</h2>
+            <ul>
+                <li><a href="{% url 'admin:collection_collectioninfo_changelist' %}">Collection Info</a></li>
+            </ul>
+        </div>
+
+        <!-- Lookup Tables -->
+        <div>
+            <h2>Lookup Tables</h2>
+            <ul>
+                <li><a href="{% url 'admin:collection_loadtype_changelist' %}">Load Types</a></li>
+                <li><a href="{% url 'admin:collection_bullettype_changelist' %}">Bullet Types</a></li>
+                <li><a href="{% url 'admin:collection_casetype_changelist' %}">Case Types</a></li>
+                <li><a href="{% url 'admin:collection_primertype_changelist' %}">Primer Types</a></li>
+                <li><a href="{% url 'admin:collection_pacolor_changelist' %}">Primer Annulus Colors</a></li>
+            </ul>
+        </div>
+
+        <!-- Collection Items -->
+        <div>
+            <h2>Collection Items</h2>
+            <ul>
+                <li><a href="{% url 'admin:collection_caliber_changelist' %}">Calibers</a></li>
+                <li><a href="{% url 'admin:collection_country_changelist' %}">Countries</a></li>
+                <li><a href="{% url 'admin:collection_manufacturer_changelist' %}">Manufacturers</a></li>
+                <li><a href="{% url 'admin:collection_headstamp_changelist' %}">Headstamps</a></li>
+                <li><a href="{% url 'admin:collection_load_changelist' %}">Loads</a></li>
+                <li><a href="{% url 'admin:collection_date_changelist' %}">Dates</a></li>
+                <li><a href="{% url 'admin:collection_variation_changelist' %}">Variations</a></li>
+                <li><a href="{% url 'admin:collection_box_changelist' %}">Boxes</a></li>
+            </ul>
+        </div>
+
+        <!-- Source Relationships -->
+        <div>
+            <h2>Source Relationships</h2>
+            <ul>
+                <li><a href="{% url 'admin:collection_source_changelist' %}">Sources</a></li>
+                <li><a href="{% url 'admin:collection_headstampsource_changelist' %}">Headstamp Sources</a></li>
+                <li><a href="{% url 'admin:collection_loadsource_changelist' %}">Load Sources</a></li>
+                <li><a href="{% url 'admin:collection_datesource_changelist' %}">Date Sources</a></li>
+                <li><a href="{% url 'admin:collection_variationsource_changelist' %}">Variation Sources</a></li>
+                <li><a href="{% url 'admin:collection_boxsource_changelist' %}">Box Sources</a></li>
+            </ul>
+        </div>
+    </div>
+{% endblock %}

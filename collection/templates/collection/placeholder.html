@@ -3,71 +3,8 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% comment %} {% block header %}
-<!-- Single Row Header -->
-<div class="header">
-    <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-lg-4 d-flex align-items-center">
-                <a href="{% url 'landing' %}" class="d-flex align-items-center text-decoration-none me-3">
-                    <img src="{% static 'images/cartridge_logo.png' %}" alt="Collection Logo" class="site-logo">
-                    <h5 class="mb-0">Cartridge Collection</h5>
-                </a>
-                
-                {% if caliber %}
-                <div class="dropdown">
-                    <a href="#" class="caliber-selector" data-bs-toggle="dropdown">
-                        {{ caliber.name }}
-                        <i class="bi bi-chevron-down ms-2"></i>
-                    </a>
-                    <ul class="dropdown-menu">
-                        {% for cal in all_calibers|default:'' %}
-                            <li>
-                                <a class="dropdown-item {% if cal.code == caliber.code %}active{% endif %} {% if not cal.is_active %}disabled{% endif %}" 
-                                   href="{% if cal.is_active %}{% url 'dashboard' cal.code %}{% else %}#{% endif %}">
-                                    {{ cal.name }}{% if not cal.is_active %} (Coming Soon){% endif %}
-                                </a>
-                            </li>
-                        {% endfor %}
-                        <div class="dropdown-divider"></div>
-                        <li><a class="dropdown-item" href="{% url 'landing' %}">Change Caliber</a></li>
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="col-lg-4 d-flex align-items-center justify-content-center">
-                {% if caliber %}
-                <a href="{% url 'dashboard' caliber.code %}" class="main-nav-link me-3">
-                    <i class="bi bi-house-door"></i> Dashboard
-                </a>
-                
-                <a href="{% url 'country_list' caliber.code %}" class="main-nav-link me-3">
-                    <i class="bi bi-globe"></i> Browse Collection
-                </a>
-                {% endif %}
-            </div>
-            
-            <div class="col-lg-4 d-flex justify-content-end">
-                {% if caliber %}
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i> Admin</a></li>
-                        <li><a class="dropdown-item" href="{% url 'documentation' %}"><i class="bi bi-question-circle me-2"></i> Documentation</a></li>
-                        <li><a class="dropdown-item" href="{% url 'support' %}"><i class="bi bi-telephone me-2"></i> Support</a></li>
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %} {% endcomment %}
 
-{% block content %}
+{% block app_content %}
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-8">

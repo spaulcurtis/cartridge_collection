@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
+    # Collection Info
+    CollectionInfo,
     # Lookup tables
     LoadType, BulletType, CaseType, PrimerType, PAColor,
     # Entity models
@@ -25,6 +27,11 @@ admin.site.register(CaseType, LookupAdmin)
 admin.site.register(PrimerType, LookupAdmin)
 admin.site.register(PAColor, LookupAdmin)
 
+# Register CollectionInfo model
+@admin.register(CollectionInfo)
+class CollectionInfoAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+
 # Register Caliber model
 @admin.register(Caliber)
 class CaliberAdmin(admin.ModelAdmin):
@@ -40,6 +47,36 @@ class SourceAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at', 'id')
     search_fields = ('name', 'description')
     ordering = ('name',)
+
+@admin.register(HeadstampSource)
+class HeadstampSourceAdmin(admin.ModelAdmin):
+    list_display = ('headstamp', 'source', 'date_sourced', 'note')
+    search_fields = ('headstamp', 'source', 'note')
+    ordering = ('headstamp',)
+
+@admin.register(LoadSource)
+class LoadSourceAdmin(admin.ModelAdmin):
+    list_display = ('load', 'source', 'date_sourced', 'note')
+    search_fields = ('load', 'source', 'note')
+    ordering = ('load',)
+
+@admin.register(DateSource)
+class DateSourceAdmin(admin.ModelAdmin):
+    list_display = ('date', 'source', 'date_sourced', 'note')
+    search_fields = ('date', 'source', 'note')
+    ordering = ('date',)
+
+@admin.register(VariationSource)
+class VariationSourceAdmin(admin.ModelAdmin):
+    list_display = ('variation', 'source', 'date_sourced', 'note')
+    search_fields = ('variation', 'source', 'note')
+    ordering = ('variation',)
+
+@admin.register(BoxSource)
+class BoxSourceAdmin(admin.ModelAdmin):
+    list_display = ('box', 'source', 'date_sourced', 'note')
+    search_fields = ('box', 'source', 'note')
+    ordering = ('box',)
 
 # Country admin
 @admin.register(Country)

@@ -8,6 +8,7 @@ urlpatterns = [
     # Caliber-specific URLs
     path('<str:caliber_code>/', views.dashboard, name='dashboard'),
     path('<str:caliber_code>/countries/', views.country_list, name='country_list'),
+    path('<str:caliber_code>/countries/<int:country_id>/', views.country_detail, name='country_detail'),
 
     # Temporary URLs:
     path('<str:caliber_code>/headstamps/', views.country_list, name='headstamp_list'),
@@ -25,9 +26,10 @@ urlpatterns = [
     path('<str:caliber_code>/advanced-search/', views.advanced_search, name='advanced_search'),
     
     # Add new items (placeholders)
-    path('<str:caliber_code>/add-load/', views.add_load, name='add_load'),
-    path('<str:caliber_code>/add-box/', views.add_box, name='add_box'),
-    path('<str:caliber_code>/upload-images/', views.upload_images, name='upload_images'),
+    path('<str:caliber_code>/add-artifact/', views.add_artifact, name='add_artifact'),
+    path('<str:caliber_code>/import_records/', views.import_records, name='import_records'),
+    path('<str:caliber_code>/download-results/', views.download_results, name='download_results'),
+    path('<str:caliber_code>/import-images/', views.import_images, name='import_images'),
     
     # Support and docs
     path('documentation/', views.documentation, name='documentation'),

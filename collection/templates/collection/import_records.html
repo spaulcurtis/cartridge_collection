@@ -1,0 +1,356 @@
+{% extends 'collection/app_base.html' %}
+{% load static %}
+
+{% block title %}Import Records - {{ caliber.name }}{% endblock %}
+
+{% block app_content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h4 class="mb-0">Import Records from SQLite Database</h4>
+    </div>
+    <div class="card-body">
+        <p class="mb-4">
+            Use this tool to import records from the old SQLite database into the new system.
+            First, select and examine your database, then choose which table to import.
+        </p>
+
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not database_examined %}
+        <!-- Step 1: Upload and examine database -->
+        <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="examine">
+            
+            <div class="mb-3">
+                <label for="database_file" class="form-label">SQLite Database File</label>
+                <input type="file" name="database_file" id="database_file" class="form-control" required>
+                <div class="form-text">Select the SQLite database file from the old application.</div>
+            </div>
+            
+            <div class="d-flex">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-database-fill-gear"></i> Examine Database
+                </button>
+                <a href="{% url 'dashboard' caliber.code %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+        {% else %}
+        <!-- Step 2: Select table and options -->
+        <div class="alert alert-info mb-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <div>
+                    Examining database: <strong>{{ database_name }}</strong>
+                    <div class="mt-1 small">{{ table_count }} tables found, {{ importable_table_count }} available for import, {{ supported_importable_count }} currently supported</div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import">
+            <input type="hidden" name="session_id" value="{{ session_id }}">
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Select Table to Import</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            {% if tables %}
+                                <div class="form-text mb-3">
+                                    <strong>Note:</strong> You can only import one table at a time. All legacy table imports are supported.
+                                </div>
+                                
+                                {% for table in tables %}
+                                <div class="form-check mb-2">
+                                    <input type="radio" class="form-check-input" id="table_{{ table.name }}" 
+                                           name="selected_table" value="{{ table.name }}"
+                                           {% if not table.supported %}disabled{% endif %}
+                                           {% if table.django_table %}disabled{% endif %}>
+                                    <label class="form-check-label {% if table.django_table or not table.supported %}text-muted{% endif %}" 
+                                           for="table_{{ table.name }}">
+                                        {{ table.name }} 
+                                        <span class="text-muted">({{ table.count }} rows)</span>
+                                        {% if table.django_table %}
+                                        <span class="badge bg-secondary">Django System Table</span>
+                                        {% elif not table.supported %}
+                                        <span class="badge bg-secondary">Not Yet Supported</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Supported</span>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">No tables found in the database.</p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                All legacy tables are supported for import. 
+                                Select a table and configure the import options before proceeding.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Import Options</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Import Mode</label>
+                                <div class="form-check mb-2">
+                                    <input type="radio" class="form-check-input" id="mode_merge" name="import_mode" value="merge" checked>
+                                    <label class="form-check-label" for="mode_merge">
+                                        <strong>Merge</strong> - Add new records, update existing ones
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="mode_replace" name="import_mode" value="replace">
+                                    <label class="form-check-label" for="mode_replace">
+                                        <strong>Replace</strong> - Clear existing records before import
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="import_images" name="import_images" value="yes">
+                                    <label class="form-check-label" for="import_images">Import Images</label>
+                                </div>
+                                <div class="form-text text-muted">If enabled, images referenced in the database will be imported.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="dry_run" name="dry_run" value="yes" checked>
+                                    <label class="form-check-label" for="dry_run">Dry Run Mode</label>
+                                </div>
+                                <div class="form-text text-muted">If enabled, no changes will be made to the database.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex">
+                <button type="submit" class="btn btn-success me-2">
+                    <i class="bi bi-database-up"></i> Process Import
+                </button>
+                <a href="{% url 'import_records' caliber.code %}" class="btn btn-outline-secondary me-2">
+                    Start Over
+                </a>
+                <a href="{% url 'dashboard' caliber.code %}" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if results %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            {% if dry_run %}
+            <span class="badge bg-info me-2">Dry Run</span>
+            {% else %}
+            <span class="badge bg-success me-2">Completed</span>
+            {% endif %}
+            Import Analysis Report
+        </h5>
+        <div>
+            <a href="{% url 'download_results' caliber.code %}?session_id={{ session_id }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download"></i> Download Complete Report
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if dry_run %}
+        <div class="alert alert-info d-flex">
+            <div class="me-3">
+                <i class="bi bi-info-circle-fill fs-3"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading">Dry Run Mode</h5>
+                <p>This is a simulation only. No changes have been made to your database.</p>
+                <hr>
+                <p class="mb-0">Ready to perform the actual import? Use the button below to proceed with the same settings.</p>
+                <div class="mt-2">
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="import">
+                        <input type="hidden" name="session_id" value="{{ session_id }}">
+                        <input type="hidden" name="selected_table" value="{{ selected_table }}">
+                        <input type="hidden" name="import_mode" value="{{ import_mode }}">
+                        <input type="hidden" name="import_images" value="{{ import_images }}">
+                        <input type="hidden" name="dry_run" value="no">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-database-fill-up"></i> Run Actual Import
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success d-flex">
+            <div class="me-3">
+                <i class="bi bi-check-circle-fill fs-3"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading">Import Completed</h5>
+                <p>The import process has been completed successfully.</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="mt-4">
+            <h6><i class="bi bi-file-text"></i> Import Summary</h6>
+            <div class="bg-light p-3 border rounded">
+                <pre style="max-height: 500px; overflow-y: auto; white-space: pre-wrap;">{{ results }}</pre>
+            </div>
+            
+            {% if stats %}
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Statistics</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td>Records Processed:</td>
+                                        <td>{{ stats.processed }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Successfully Imported:</td>
+                                        <td>
+                                            <span class="text-success">
+                                                {% if dry_run %}Would be {% endif %}{{ stats.success }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Failed:</td>
+                                        <td>
+                                            <span class="text-danger">
+                                                {% if dry_run %}Would be {% endif %}{{ stats.failed }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Warnings:</td>
+                                        <td>
+                                            <span class="text-warning">
+                                                {% if dry_run %}Would be {% endif %}{{ stats.warnings }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sources Created:</td>
+                                        <td>{% if dry_run %}Would be {% endif %}{{ stats.sources_created }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Source Links:</td>
+                                        <td>{% if dry_run %}Would be {% endif %}{{ stats.source_links_created }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Notable Issues</h6>
+                        </div>
+                        <div class="card-body">
+                            
+                            {% if first_failures %}
+                            <div class="mb-3">
+                                <h6 class="text-danger">Sample Failures:</h6>
+                                <ul class="list-group">
+                                    {% for failure in first_failures %}
+                                    <li class="list-group-item list-group-item-danger">
+                                        <strong>{{ selected_table }} ID: {{ failure.id }}</strong>
+                                        {% if selected_table == 'Load' and failure.cart_id %}({{ failure.cart_id }}){% endif %}
+                                        {% if selected_table == 'Headstamp' and failure.code %}({{ failure.code }}){% endif %}
+                                        <div>{{ failure.error }}</div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% if stats.failed > first_failures|length %}
+                                <div class="text-muted mt-1">
+                                    <small>And {{ stats.failed|add:"-2" }} more failures. Download the complete report for details.</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if first_warnings %}
+                            <div>
+                                <h6 class="text-warning">Sample Warnings:</h6>
+                                <ul class="list-group">
+                                    {% for warning in first_warnings %}
+                                    <li class="list-group-item list-group-item-warning">
+                                        <strong>{{ selected_table }} ID: {{ warning.id }}</strong>
+                                        {% if selected_table == 'Load' and warning.cart_id %}({{ warning.cart_id }}){% endif %}
+                                        {% if selected_table == 'Headstamp' and warning.code %}({{ warning.code }}){% endif %}
+                                        <div>{{ warning.warning }}</div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% if stats.warnings > first_warnings|length %}
+                                <div class="text-muted mt-1">
+                                    <small>And {{ stats.warnings|add:"-2" }} more warnings. Download the complete report for details.</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}        
+
+                            {% if not first_failures and not first_warnings %}
+                            <div class="alert alert-success mb-0">
+                                <i class="bi bi-check-circle"></i> No major issues found during import!
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-select the first supported table
+        const supportedRadios = document.querySelectorAll('input[name="selected_table"]:not(:disabled)');
+        if (supportedRadios.length > 0) {
+            supportedRadios[0].checked = true;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

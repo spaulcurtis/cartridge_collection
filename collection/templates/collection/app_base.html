@@ -67,104 +67,6 @@
         background-color: rgba(58, 124, 165, 0.1);
         color: var(--theme-color);
     }
-    .dashboard-card {
-        border-radius: 0.5rem;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,.05);
-        transition: transform 0.2s, box-shadow 0.2s;
-        height: 100%;
-    }
-    .dashboard-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,.08);
-    }
-    .browse-card {
-        padding: 1.5rem;
-    }
-    .browse-level {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        padding-left: 10px;
-    }
-    .browse-level-indent {
-        padding-left: 30px;
-    }
-    .browse-level-indent-2 {
-        padding-left: 50px;
-    }
-    .browse-level-indent-3 {
-        padding-left: 70px;
-    }
-    .browse-level-indent-4 {
-        padding-left: 90px;
-    }
-    .browse-level-indent-5 {
-        padding-left: 110px;
-    }
-    .browse-icon {
-        color: var(--theme-color);
-        margin-right: 10px;
-        font-size: 1.2rem;
-    }
-    .browse-text {
-        flex-grow: 1;
-    }
-    .browse-count {
-        display: flex;
-        align-items: center;
-    }
-    .browse-count-item {
-        background-color: rgba(58, 124, 165, 0.1);
-        color: var(--theme-color);
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.9rem;
-        margin-left: 0.5rem;
-    }
-    .browse-count-image {
-        background-color: rgba(40, 167, 69, 0.1);
-        color: #28a745;
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.9rem;
-    }
-    .browse-hierarchy {
-        border-left: 1px dashed #dee2e6;
-        margin-left: 15px;
-    }
-    .artifact-container {
-        background-color: rgba(58, 124, 165, 0.05);
-        border-left: 3px solid var(--theme-color);
-        border-radius: 4px;
-        padding: 10px;
-        margin: 15px 0 15px 10px;
-    }
-    .table-responsive {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-    .action-card {
-        background-color: white;
-        border-radius: 0.5rem;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,.05);
-        transition: transform 0.2s, box-shadow 0.2s;
-        height: 100%;
-        text-align: center;
-        padding: 1.5rem;
-    }
-    .action-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,.08);
-        text-decoration: none;
-    }
-    .action-icon {
-        font-size: 2rem;
-        color: var(--theme-color);
-        margin-bottom: 1rem;
-        display: block;
-    }
 </style>
 {% endblock %}
 
@@ -184,7 +86,7 @@
 
                 <div class="dropdown">
                     <a href="#" class="caliber-selector" data-bs-toggle="dropdown">
-                        {{ caliber.name }}
+                        {{ caliber.code }}
                         <i class="bi bi-chevron-down ms-2"></i>
                     </a>
                     <ul class="dropdown-menu">
@@ -192,7 +94,7 @@
                             <li>
                                 <a class="dropdown-item {% if cal.code == caliber.code %}active{% endif %} {% if not cal.is_active %}disabled{% endif %}" 
                                    href="{% if cal.is_active %}{% url 'dashboard' cal.code %}{% else %}#{% endif %}">
-                                    {{ cal.name }}{% if not cal.is_active %} (Coming Soon){% endif %}
+                                    {{ cal.code }}{% if not cal.is_active %} (Coming Soon){% endif %}
                                 </a>
                             </li>
                         {% endfor %}
