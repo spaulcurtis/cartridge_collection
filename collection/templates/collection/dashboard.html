@@ -4,71 +4,8 @@
 {% block title %}{{ caliber.name }} Collection{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
-    :root {
-        --theme-color: {{ caliber.theme_color|default:"#3a7ca5" }}; /* Default theme color */
-        --theme-light: {{ caliber.theme_color|default:"#3a7ca5" }}1F;  /* Lightened version for header */
-        --theme-super-light: {{ caliber.theme_color|default:"#3a7ca5" }}0F;  /* Even lighter for page background */
-
-    }
-    body {
-        background-color: var(--theme-super-light);
-    }
-    .header {
-        background-color: var(--theme-light);
-        color: var(--theme-color);
-        box-shadow: 0 2px 4px rgba(0,0,0,.08);
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .header a, .header h5 {
-        color: var(--theme-color) !important;
-    }
-    .site-logo {
-        max-width:80px;
-        max-height:60px;
-        width:auto;
-        height:auto;
-        margin-right: 12px;
-        margin-left: 24px;
-    }
-    .caliber-selector {
-        display: flex;
-        align-items: center;
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
-        color: var(--theme-color);
-        background-color: rgba(58, 124, 165, 0.1);
-        border-radius: 0.25rem;
-        margin-right: 1rem;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .caliber-selector:hover {
-        background-color: rgba(58, 124, 165, 0.2);
-        text-decoration: none;
-        color: var(--theme-color);
-    }
-    .caliber-selector img {
-        height: 20px;
-        margin-right: 8px;
-    }
-    .main-nav-link {
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
-        color: #495057;
-        transition: all 0.2s;
-        text-decoration: none;
-        border-radius: 0.25rem;
-    }
-    .main-nav-link:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-        color: #212529;
-    }
-    .main-nav-link.active {
-        background-color: rgba(58, 124, 165, 0.1);
-        color: var(--theme-color);
-    }
     .dashboard-card {
         border-radius: 0.5rem;
         border: none;
@@ -315,17 +252,17 @@
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'add_load' caliber.code %}" class="action-card d-block">
+            <a href="{% url 'add_artifact' caliber.code %}" class="action-card d-block">
                 <i class="bi bi-plus-circle action-icon"></i>
-                <h3 class="h5">Add New Load</h3>
-                <p class="text-muted mb-0">Record a new cartridge</p>
+                <h3 class="h5">Add Artifact</h3>
+                <p class="text-muted mb-0">Add a new cartridge or box to collection</p>
             </a>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'add_box' caliber.code %}" class="action-card d-block">
-                <i class="bi bi-box action-icon"></i>
-                <h3 class="h5">Add New Box</h3>
-                <p class="text-muted mb-0">Record a new box or label</p>
+            <a href="{% url 'import_records' caliber.code %}" class="action-card d-block">
+                <i class="bi bi-upload action-icon"></i>
+                <h3 class="h5">Import Records</h3>
+                <p class="text-muted mb-0">Import records into collection</p>
             </a>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
@@ -336,10 +273,10 @@
             </a>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'upload_images' caliber.code %}" class="action-card d-block">
+            <a href="{% url 'import_images' caliber.code %}" class="action-card d-block">
                 <i class="bi bi-camera action-icon"></i>
-                <h3 class="h5">Upload Images</h3>
-                <p class="text-muted mb-0">Add images to artifacts</p>
+                <h3 class="h5">Import Images</h3>
+                <p class="text-muted mb-0">Import images into collection</p>
             </a>
         </div>
     </div>

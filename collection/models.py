@@ -6,6 +6,30 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 
 # ===============================
+# Overall Collection Table 
+# ===============================
+
+class CollectionInfo(models.Model):
+    name = models.CharField(max_length=128)
+    description = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        """ Ensure only one instance exists """
+        if not self.pk and CollectionInfo.objects.exists():
+            # If there's already a record, raise an error
+            raise ValueError('Only one CollectionInfo instance is allowed.')
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        """ Retrieve the singleton instance or create one if it doesn't exist """
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        return self.name
+
+# ===============================
 # Extensible Lookup Table Models
 # ===============================
 
@@ -80,7 +104,7 @@ class PAColor(models.Model):
 
 CREDIBILITY_CHOICES = [
     (1, '1 - In Collection'),
-    (2, '2 - Reliable Reference'),
+    (2, '2 - Verified Reference'),
     (3, '3 - Secondary Source'),
     (4, '4 - Questionable'),
     (5, '5 - Unverified'),
@@ -130,7 +154,7 @@ class BaseCollectionItem(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     description = models.TextField(blank=True, null=True)
     cc = models.IntegerField("Credibility Code", choices=CREDIBILITY_CHOICES, default=1)
-    col_date = models.DateField("Collection Date", blank=True, null=True)
+    acquisition_note = models.CharField("Acqu. Note", max_length=50, blank=True, null=True)
     price = models.DecimalField("Price/Value", max_digits=10, decimal_places=2, blank=True, null=True)
     note = models.TextField("Notes", blank=True, null=True)
     image = models.ImageField(upload_to='artifacts/', blank=True, null=True)

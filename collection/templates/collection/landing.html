@@ -61,12 +61,25 @@
 
 {% block content %}
 <div class="landing-container">
-    <div class="header">
-        <img src="{% static 'collection/images/djammo48.png' %}" alt="Cartridge Collection Logo" class="logo">
-        <h1 class="display-4">Lew Curtis Cartridge Collection</h1>
-        <p class="lead text-muted">Select a caliber to explore the collection</p>
-    </div>
+    <div class="header text-center">
+        <img src="{% static 'collection/images/djammo48.png' %}" alt="Cartridge Collection Logo" class="logo mb-3">
+        
+        <!-- Title -->
+        <h1 class="display-4">{{ collection_name }}</h1>
+        
+        <!-- Description -->
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10">  <!-- This limits the width of the description -->
+                    <p class="lead text-muted">{{ collection_description|safe }}</p>
+                </div>
+            </div>
+        </div>
     
+        <!-- Call to Action -->
+        <p class="lead text-muted mt-4">Select a caliber to explore the collection</p>
+    </div>
+        
     <div class="row justify-content-center">
         {% for caliber in calibers %}
         <div class="col-md-4">

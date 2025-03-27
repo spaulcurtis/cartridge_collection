@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.contrib import messages
-from .models import Caliber
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from ..models import Caliber, CollectionInfo
 
 def landing(request):
     """Landing page with caliber selection"""
@@ -17,9 +19,15 @@ def landing(request):
         else:
             caliber.artifact_count = 1200
     
+    # Get the global collection info
+    collection_info = CollectionInfo.get_solo()
+    
     context = {
         'calibers': calibers,
+        'collection_name': collection_info.name,
+        'collection_description': collection_info.description,
     }
+
     return render(request, 'collection/landing.html', context)
 
 def dashboard(request, caliber_code):
@@ -94,27 +102,19 @@ def advanced_search(request, caliber_code):
         'message': 'This page is under construction'
     })
 
-def add_load(request, caliber_code):
+def add_artifact(request, caliber_code):
     caliber = get_object_or_404(Caliber, code=caliber_code)
     return render(request, 'collection/placeholder.html', {
         'caliber': caliber,
-        'title': 'Add Load',
+        'title': 'Add Artifact',
         'message': 'This page is under construction'
     })
 
-def add_box(request, caliber_code):
+def import_images(request, caliber_code):
     caliber = get_object_or_404(Caliber, code=caliber_code)
     return render(request, 'collection/placeholder.html', {
         'caliber': caliber,
-        'title': 'Add Box',
-        'message': 'This page is under construction'
-    })
-
-def upload_images(request, caliber_code):
-    caliber = get_object_or_404(Caliber, code=caliber_code)
-    return render(request, 'collection/placeholder.html', {
-        'caliber': caliber,
-        'title': 'Upload Images',
+        'title': 'Import Images',
         'message': 'This page is under construction'
     })
 
@@ -129,3 +129,4 @@ def support(request):
         'title': 'Support',
         'message': 'Support page is under construction'
     })
+
