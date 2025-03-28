@@ -114,27 +114,21 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label">Import Mode</label>
-                                <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" id="mode_merge" name="import_mode" value="merge" checked>
-                                    <label class="form-check-label" for="mode_merge">
-                                        <strong>Merge</strong> - Add new records, update existing ones
-                                    </label>
-                                </div>
+                                <!-- Hide Merge option and force Replace mode -->
+                                <input type="hidden" name="import_mode" value="replace">
                                 <div class="form-check">
-                                    <input type="radio" class="form-check-input" id="mode_replace" name="import_mode" value="replace">
+                                    <input type="radio" class="form-check-input" id="mode_replace" name="import_mode_display" value="replace" checked disabled>
                                     <label class="form-check-label" for="mode_replace">
                                         <strong>Replace</strong> - Clear existing records before import
                                     </label>
+                                    <div class="form-text text-muted">
+                                        The importer will clear all existing records, maintaining the original record IDs from the legacy database.
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="import_images" name="import_images" value="yes">
-                                    <label class="form-check-label" for="import_images">Import Images</label>
-                                </div>
-                                <div class="form-text text-muted">If enabled, images referenced in the database will be imported.</div>
-                            </div>
+                            <!-- Hide the image import option since we'll never import images -->
+                            <input type="hidden" name="import_images" value="no">
                             
                             <div class="mb-3">
                                 <div class="form-check form-switch">
@@ -142,6 +136,12 @@
                                     <label class="form-check-label" for="dry_run">Dry Run Mode</label>
                                 </div>
                                 <div class="form-text text-muted">If enabled, no changes will be made to the database.</div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <strong>Important:</strong> This import will preserve original record IDs from the legacy database. 
+                                Existing records in the selected table will be deleted before import.
                             </div>
                         </div>
                     </div>
@@ -198,8 +198,8 @@
                         <input type="hidden" name="action" value="import">
                         <input type="hidden" name="session_id" value="{{ session_id }}">
                         <input type="hidden" name="selected_table" value="{{ selected_table }}">
-                        <input type="hidden" name="import_mode" value="{{ import_mode }}">
-                        <input type="hidden" name="import_images" value="{{ import_images }}">
+                        <input type="hidden" name="import_mode" value="replace">
+                        <input type="hidden" name="import_images" value="no">
                         <input type="hidden" name="dry_run" value="no">
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-database-fill-up"></i> Run Actual Import
@@ -216,6 +216,7 @@
             <div>
                 <h5 class="alert-heading">Import Completed</h5>
                 <p>The import process has been completed successfully.</p>
+                <p class="mb-0">The original record IDs from the legacy database have been preserved.</p>
             </div>
         </div>
         {% endif %}

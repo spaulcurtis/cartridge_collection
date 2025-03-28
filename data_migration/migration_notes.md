@@ -96,7 +96,7 @@ The migration scripts are not finalized, but good enough to import data for deve
 For Poppy's real data import:
 
 1. Clean up source database Load Type ("HS Only" for anything with blank)
-2. rename the second SMI to SMI2
+2. rename the second SMI to SMI2.  Rename second AP01B to AP01B-2
 3. Leave contries
 4. Use data_migration scripts to pull in country and manufacturer.  If you redo, don't forget to reset indexes.
 5. Use web app to pull in Headstamp and Load
@@ -109,3 +109,22 @@ Longer term migration clean up
 
 
 
+/* Indexes for collection_manufacturer Table */
+CREATE INDEX IF NOT EXISTS idx_collection_manufacturer_country_id ON collection_manufacturer (country_id);
+
+/* Indexes for collection_headstamp Table */
+CREATE INDEX IF NOT EXISTS idx_collection_headstamp_manufacturer_id ON collection_headstamp (manufacturer_id);
+
+/* Indexes for collection_load Table */
+CREATE INDEX IF NOT EXISTS idx_collection_load_headstamp_id ON collection_load (headstamp_id);
+
+/* Indexes for collection_date Table */
+CREATE INDEX IF NOT EXISTS idx_collection_date_load_id ON collection_date (load_id);
+
+/* Indexes for collection_variation Table */
+CREATE INDEX IF NOT EXISTS idx_collection_variation_load_id ON collection_variation (load_id);
+CREATE INDEX IF NOT EXISTS idx_collection_variation_date_id ON collection_variation (date_id);
+
+/* Indexes for collection_box Table (Generic Relation) */
+CREATE INDEX IF NOT EXISTS idx_collection_box_content_type_id ON collection_box (content_type_id);
+CREATE INDEX IF NOT EXISTS idx_collection_box_object_id ON collection_box (object_id);
