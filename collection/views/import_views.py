@@ -8,8 +8,8 @@ from django.http import Http404, HttpResponse
 from django.contrib import messages
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.db import connection
 from ..models import Caliber
-
 
 
 # ===============================
@@ -24,6 +24,27 @@ def _get_table_count(cursor, table_name):
     except:
         return 0
 
+def reset_table_and_sequence(model_class):
+    """
+    Reset a table and its ID sequence back to 1.
+    Removes all existing records and resets the auto-increment sequence.
+    """
+    table_name = model_class._meta.db_table
+    sequence_name = f"{table_name}_id_seq"
+    
+    with connection.cursor() as cursor:
+        # Delete all records
+        cursor.execute(f"DELETE FROM {table_name}")
+        
+        # Reset the sequence based on database backend
+        database_engine = connection.vendor
+        if database_engine == 'postgresql':
+            cursor.execute(f"ALTER SEQUENCE {sequence_name} RESTART WITH 1")
+        elif database_engine == 'sqlite3':
+            cursor.execute("DELETE FROM sqlite_sequence WHERE name = %s", [table_name])
+        elif database_engine == 'mysql':
+            cursor.execute(f"ALTER TABLE {table_name} AUTO_INCREMENT = 1")
+
 def extract_sources_from_note(note):
     """
     Extract source information from a note field.
@@ -31,75 +52,6 @@ def extract_sources_from_note(note):
     Args:
         note (str): The note text containing source information
         
-    Returns:
-        tuple: (cleaned_note, sources_info, warnings)
-            - cleaned_note: Note with source info removed
-            - sources_info: List of dicts with source details
-            - warnings: List of warning messages
-    """
-    from datetime import date
-    import re
-    
-    if not note:
-        return "", [], []
-    
-    sources_info = []
-    warnings = []
-    
-    # Extract sources using regex
-    source_pattern = r'\[Source:\s*(.*?)\]'
-    source_matches = re.findall(source_pattern, note, re.DOTALL)
-    
-    for source_match in source_matches:
-        source_entries = source_match.split(';')
-        for entry in source_entries:
-            entry = entry.strip()
-            if not entry:
-                continue
-                
-            # Parse source entry (name, cc, year)
-            parts = entry.split(',')
-            if len(parts) >= 3:
-                source_name = parts[0].strip()
-                try:
-                    source_cc = int(parts[1].strip())
-                except ValueError:
-                    source_cc = 3  # Default if not valid
-                    warnings.append(f"Invalid credibility code in source '{source_name}', using default (3)")
-                
-                try:
-                    year_str = parts[2].strip()
-                    year_int = int(year_str)
-                    if year_int < 60:
-                        year = 2000 + year_int
-                    else:
-                        year = 1900 + year_int
-                    source_date = date(year, 1, 1)
-                except ValueError:
-                    source_date = None
-                    warnings.append(f"Invalid year in source '{source_name}', date will be empty")
-                
-                sources_info.append({
-                    'name': source_name,
-                    'cc': source_cc,
-                    'date': source_date
-                })
-            else:
-                warnings.append(f"Malformed source entry: '{entry}', skipping")
-    
-    # Clean the note by removing source information
-    clean_note = re.sub(source_pattern, '', note).strip()
-    
-    return clean_note, sources_info, warnings
-
-
-def extract_sources_from_note(note):
-    """
-    Extract source information from a note field.
-
-    Args:
-        note (str): The note text containing source information
-
     Returns:
         tuple: (cleaned_note, sources_info, warnings)
             - cleaned_note: Note with source info removed
@@ -221,7 +173,7 @@ def process_sources(record_obj, sources_info, dry_run=True):
                 record_obj.add_source(
                     source=source,
                     date=source_info['date'],
-                    note=f"credibility is {source_info['cc']}; note: {source_info['note']}"
+                    note=f"credibility is {source_info['cc']}; note: {source_info.get('note', '')}"
                 )
                 source_links_created += 1
                 source_messages.append(f"Linked source: {source_info['name']} ({source_info['date']})")
@@ -316,6 +268,94 @@ def find_manufacturer_by_code_and_country(manuf_code, country_name):
         return None, f"Multiple manufacturers found with code '{manuf_code}' for country '{country_name}'"
     except Exception as e:
         return None, f"Error finding manufacturer: {str(e)}"
+    
+
+
+def create_legacy_mapping(objects_dict):
+    """
+    Create a mapping dictionary from legacy values to model objects.
+    
+    Args:
+        objects_dict (dict): Dictionary of model objects keyed by id
+        
+    Returns:
+        dict: Mapping from legacy values to model objects
+    """
+    mapping = {}
+    
+    for obj in objects_dict.values():
+        if hasattr(obj, 'legacy_mappings') and obj.legacy_mappings:
+            # Handle different string formats that might be in the database
+            legacy_str = obj.legacy_mappings
+            
+            # Check if the field contains a JSON-like format with brackets
+            if legacy_str.startswith('[') and legacy_str.endswith(']'):
+                try:
+                    # Try to parse it like JSON (removing single quotes if present)
+                    import json
+                    legacy_str = legacy_str.replace("'", '"')
+                    mappings = json.loads(legacy_str)
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, fall back to simpler processing
+                    # Remove brackets and split by commas
+                    legacy_str = legacy_str.strip('[]')
+                    mappings = [m.strip(' "\'') for m in legacy_str.split(',')]
+            else:
+                # Plain comma-separated string
+                mappings = [m.strip() for m in legacy_str.split(',')]
+            
+            # Add each mapping to the dictionary
+            for m in mappings:
+                if m:  # Only add non-empty mappings
+                    mapping[m] = obj
+                    
+                    # Also add lowercase version for case-insensitive matching
+                    mapping[m.lower()] = obj
+    
+    return mapping
+
+def map_lookup_value(value, mapping_dict, field_name, get_default=None):
+    """
+    Map a value from the old database to a model object using a mapping dictionary.
+    
+    Args:
+        value (str): The value to map
+        mapping_dict (dict): Dictionary mapping old values to model objects
+        field_name (str): Name of the field (for warning messages)
+        get_default (callable, optional): Function to get a default value if not found
+        
+    Returns:
+        tuple: (mapped_object, warning_message)
+            - mapped_object: The mapped model object or None
+            - warning_message: Warning message if mapping failed, empty string otherwise
+    """
+    if not value:
+        if get_default:
+            default_obj = get_default()
+            return default_obj, f"No {field_name} specified, using default"
+        return None, ""
+    
+    # Try an exact match first
+    mapped_obj = mapping_dict.get(value)
+    
+    # If no match, try a case-insensitive match
+    if not mapped_obj:
+        mapped_obj = mapping_dict.get(value.lower())
+    
+    # If still no match, try with whitespace trimmed
+    if not mapped_obj and value.strip() != value:
+        mapped_obj = mapping_dict.get(value.strip())
+        if not mapped_obj:
+            mapped_obj = mapping_dict.get(value.strip().lower())
+    
+    # If no match found, use default or return None with warning
+    if not mapped_obj:
+        if get_default:
+            default_obj = get_default()
+            return default_obj, f"Unknown {field_name} '{value}', using default"
+        return None, f"Unknown {field_name} '{value}', leaving blank"
+    
+    return mapped_obj, ""
 
 def generate_import_report(table_name, total_records, processed, success, failed, warnings, 
                            sources_created, source_links_created, record_results, 
@@ -450,6 +490,10 @@ def import_countries(cursor, dry_run):
     from django.db import transaction, IntegrityError
     from ..models import Country, Caliber
     
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Country)
+    
     # Get the caliber - we'll use the same caliber for all countries
     try:
         caliber = Caliber.objects.get(pk=1)  # Default to first caliber
@@ -521,32 +565,16 @@ def import_countries(cursor, dry_run):
                 'sources_count': len(sources_info)
             }
             
-            # Check if country already exists
-            if Country.objects.filter(name=country['name']).exists() and not dry_run:
-                warning_msg = f"Country with name '{country['name']}' already exists, will update"
-                record_result['warnings'].append(warning_msg)
-                warnings += 1
-                
-                # Track for web display
-                if len(first_warnings) < 2:
-                    first_warnings.append({
-                        'id': country['country_id'],
-                        'name': country['name'],
-                        'warning': warning_msg
-                    })
-            
             # Process the country record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the country
-                    country_obj, created = Country.objects.update_or_create(
+                    # Create country with explicit ID to maintain the same record number
+                    country_obj = Country.objects.create(
+                        id=country['country_id'],
                         name=country['name'],
-                        defaults={
-                            'full_name': country['full_name'],
-                            'caliber': caliber,
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        full_name=country['full_name'],
+                        caliber=caliber,
+                        note=clean_note,
                     )
                     
                     # Process source links if supported
@@ -597,7 +625,7 @@ def import_countries(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('country_id', 'id'),
+        ('country_id', 'id (preserved)'),
         ('name', 'name'),
         ('full_name', 'full_name'),
         ('note', 'note (with source info extracted)'),
@@ -629,6 +657,10 @@ def import_manufacturers(cursor, dry_run):
     from django.utils import timezone
     from django.db import transaction, IntegrityError
     from ..models import Manufacturer, Country
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Manufacturer)
     
     # Get record count
     total_records = _get_table_count(cursor, "Manuf")
@@ -709,20 +741,6 @@ def import_manufacturers(cursor, dry_run):
                         'warning': warning
                     })
             
-            # Check if manufacturer already exists for this country
-            if Manufacturer.objects.filter(code=manuf['code'], country=country).exists() and not dry_run:
-                warning_msg = f"Manufacturer with code '{manuf['code']}' already exists for country '{manuf['country_name']}', will update"
-                record_result['warnings'].append(warning_msg)
-                warnings += 1
-                
-                # Track for web display
-                if len(first_warnings) < 2:
-                    first_warnings.append({
-                        'id': manuf['manuf_id'],
-                        'code': manuf['code'],
-                        'warning': warning_msg
-                    })
-            
             # Store details in record result
             record_result['details'] = {
                 'code': manuf['code'],
@@ -736,15 +754,13 @@ def import_manufacturers(cursor, dry_run):
             # Process the manufacturer record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the manufacturer
-                    manufacturer, created = Manufacturer.objects.update_or_create(
+                    # Create manufacturer with explicit ID to maintain the same record number
+                    manufacturer = Manufacturer.objects.create(
+                        id=manuf['manuf_id'],
                         code=manuf['code'],
+                        name=manuf['name'],
                         country=country,
-                        defaults={
-                            'name': manuf['name'],
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        note=clean_note
                     )
                     
                     # Process source links if supported
@@ -795,7 +811,7 @@ def import_manufacturers(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('manuf_id', 'id'),
+        ('manuf_id', 'id (preserved)'),
         ('code', 'code'),
         ('name', 'name'),
         ('country_id', 'country (mapped by name)'),
@@ -829,6 +845,10 @@ def import_headstamps(cursor, dry_run):
     from ..models import Headstamp, Manufacturer, Source, HeadstampSource, Country
     import re
     from django.db import transaction, IntegrityError
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Headstamp)
     
     # Get record count
     total_records = _get_table_count(cursor, "Headstamp")
@@ -947,17 +967,18 @@ def import_headstamps(cursor, dry_run):
             # Process the headstamp record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the headstamp
-                    headstamp, created = Headstamp.objects.update_or_create(
+                    # Create headstamp with explicit ID to maintain the same record number
+                    headstamp = Headstamp.objects.create(
+                        id=hs['headstamp_id'],
                         code=hs['code'],
+                        name=hs['name'],
                         manufacturer=manufacturer,
-                        defaults={
-                            'name': hs['name'],
-                            'primary_manufacturer': primary_manufacturer,
-                            'cc': hs['cc'],
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        primary_manufacturer=primary_manufacturer,
+                        cc=hs['cc'],
+                        note=clean_note,
+                        updated_at=timezone.now(),
+                        # Set image to None explicitly, as we're not importing images
+                        image=None
                     )
                     
                     # Process source links
@@ -1008,7 +1029,7 @@ def import_headstamps(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('headstamp_id', 'id'),
+        ('headstamp_id', 'id (preserved)'),
         ('code', 'code'),
         ('name', 'name'),
         ('manuf_id', 'manufacturer_id'),
@@ -1033,105 +1054,6 @@ def import_headstamps(cursor, dry_run):
         dry_run=dry_run
     )
 
-def create_legacy_mapping(objects_dict):
-    """
-    Create a mapping dictionary from legacy values to model objects.
-    
-    Args:
-        objects_dict (dict): Dictionary of model objects keyed by id
-        
-    Returns:
-        dict: Mapping from legacy values to model objects
-    """
-    mapping = {}
-    
-    for obj in objects_dict.values():
-        if hasattr(obj, 'legacy_mappings') and obj.legacy_mappings:
-            # Handle different string formats that might be in the database
-            legacy_str = obj.legacy_mappings
-            
-            # Check if the field contains a JSON-like format with brackets
-            if legacy_str.startswith('[') and legacy_str.endswith(']'):
-                try:
-                    # Try to parse it like JSON (removing single quotes if present)
-                    import json
-                    legacy_str = legacy_str.replace("'", '"')
-                    mappings = json.loads(legacy_str)
-                except json.JSONDecodeError:
-                    # If JSON parsing fails, fall back to simpler processing
-                    # Remove brackets and split by commas
-                    legacy_str = legacy_str.strip('[]')
-                    mappings = [m.strip(' "\'') for m in legacy_str.split(',')]
-            else:
-                # Plain comma-separated string
-                mappings = [m.strip() for m in legacy_str.split(',')]
-            
-            # Add each mapping to the dictionary
-            for m in mappings:
-                if m:  # Only add non-empty mappings
-                    mapping[m] = obj
-                    
-                    # Also add lowercase version for case-insensitive matching
-                    mapping[m.lower()] = obj
-    
-    return mapping
-
-def map_lookup_value(value, mapping_dict, field_name, get_default=None):
-    """
-    Map a value from the old database to a model object using a mapping dictionary.
-    
-    Args:
-        value (str): The value to map
-        mapping_dict (dict): Dictionary mapping old values to model objects
-        field_name (str): Name of the field (for warning messages)
-        get_default (callable, optional): Function to get a default value if not found
-        
-    Returns:
-        tuple: (mapped_object, warning_message)
-            - mapped_object: The mapped model object or None
-            - warning_message: Warning message if mapping failed, empty string otherwise
-    """
-    if not value:
-        if get_default:
-            default_obj = get_default()
-            return default_obj, f"No {field_name} specified, using default"
-        return None, ""
-    
-    # Try an exact match first
-    mapped_obj = mapping_dict.get(value)
-    
-    # If no match, try a case-insensitive match
-    if not mapped_obj:
-        mapped_obj = mapping_dict.get(value.lower())
-    
-    # If still no match, try with whitespace trimmed
-    if not mapped_obj and value.strip() != value:
-        mapped_obj = mapping_dict.get(value.strip())
-        if not mapped_obj:
-            mapped_obj = mapping_dict.get(value.strip().lower())
-    
-    # If no match found, use default or return None with warning
-    if not mapped_obj:
-        if get_default:
-            default_obj = get_default()
-            return default_obj, f"Unknown {field_name} '{value}', using default"
-        return None, f"Unknown {field_name} '{value}', leaving blank"
-    
-    return mapped_obj, ""
-
-# For debugging purposes
-def print_legacy_mappings(model_class):
-    """
-    Print all legacy mappings for a given model class.
-    This is useful for debugging mapping issues.
-    
-    Args:
-        model_class: The Django model class to inspect
-    """
-    for obj in model_class.objects.all():
-        if hasattr(obj, 'legacy_mappings') and obj.legacy_mappings:
-            print(f"ID: {obj.id}, Display: {obj.display_name}, Legacy: {obj.legacy_mappings}, Type: {type(obj.legacy_mappings)}")
-
 
 def import_loads(cursor, dry_run):
     """
@@ -1144,6 +1066,10 @@ def import_loads(cursor, dry_run):
         Load, Headstamp, Source, LoadSource, 
         LoadType, BulletType, CaseType, PrimerType, PAColor
     )
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Load)
     
     # Get record count
     total_records = _get_table_count(cursor, "Load")
@@ -1280,7 +1206,7 @@ def import_loads(cursor, dry_run):
                     
                     record_results.append(record_result)
                     continue
-            
+                    
             # Map lookup fields using the utility function
             mappings = {}
             
@@ -1434,24 +1360,25 @@ def import_loads(cursor, dry_run):
             # Process the load record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the load
-                    load, created = Load.objects.update_or_create(
+                    # Create load with explicit ID to maintain the same record number
+                    load = Load.objects.create(
+                        id=ld['load_id'],
                         cart_id=ld['cart_id'],
-                        defaults={
-                            'load_type': mappings['load_type'],
-                            'bullet': mappings['bullet'],
-                            'is_magnetic': mappings['is_magnetic'],
-                            'case_type': mappings['case_type'],
-                            'primer': mappings['primer'],
-                            'pa_color': mappings['pa_color'],
-                            'description': ld['description'],
-                            'headstamp': headstamp,
-                            'cc': ld['cc'],
-                            'acquisition_note': acquisition_note,  # Use col_date as acquisition_note
-                            'price': price,
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        load_type=mappings['load_type'],
+                        bullet=mappings['bullet'],
+                        is_magnetic=mappings['is_magnetic'],
+                        case_type=mappings['case_type'],
+                        primer=mappings['primer'],
+                        pa_color=mappings['pa_color'],
+                        description=ld['description'],
+                        headstamp=headstamp,
+                        cc=ld['cc'],
+                        acquisition_note=acquisition_note,  # Use col_date as acquisition_note
+                        price=price,
+                        note=clean_note,
+                        updated_at=timezone.now(),
+                        # Set image to None explicitly, as we're not importing images
+                        image=None
                     )
                     
                     # Process source links
@@ -1499,7 +1426,7 @@ def import_loads(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('load_id', 'id'),
+        ('load_id', 'id (preserved)'),
         ('cart_id', 'cart_id'),
         ('load_type', 'load_type (via lookup)'),
         ('bullet', 'bullet (via lookup)'),
@@ -1541,6 +1468,10 @@ def import_dates(cursor, dry_run):
     from django.utils import timezone
     from django.db import transaction, IntegrityError
     from ..models import Date, Load, Source, DateSource
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Date)
     
     # Get record count
     total_records = _get_table_count(cursor, "Date")
@@ -1659,19 +1590,20 @@ def import_dates(cursor, dry_run):
             # Process the date record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the date
-                    date, created = Date.objects.update_or_create(
+                    # Create date with explicit ID to maintain the same record number
+                    date = Date.objects.create(
+                        id=dt['date_id'],
                         cart_id=dt['cart_id'],
-                        defaults={
-                            'year': dt['year'],
-                            'lot_month': dt['lot_month'],
-                            'load': load,
-                            'cc': dt['cc'],
-                            'acquisition_note': acquisition_note,
-                            'price': price,
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        year=dt['year'],
+                        lot_month=dt['lot_month'],
+                        load=load,
+                        cc=dt['cc'],
+                        acquisition_note=acquisition_note,
+                        price=price,
+                        note=clean_note,
+                        updated_at=timezone.now(),
+                        # Set image to None explicitly, as we're not importing images
+                        image=None
                     )
                     
                     # Process source links
@@ -1720,7 +1652,7 @@ def import_dates(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('date_id', 'id'),
+        ('date_id', 'id (preserved)'),
         ('cart_id', 'cart_id'),
         ('year', 'year'),
         ('lot_month', 'lot_month'),
@@ -1747,7 +1679,6 @@ def import_dates(cursor, dry_run):
         dry_run=dry_run
     )
 
-
 def import_variations(cursor, dry_run):
     """
     Import variation records from SQLite database
@@ -1756,6 +1687,10 @@ def import_variations(cursor, dry_run):
     from django.utils import timezone
     from django.db import transaction, IntegrityError
     from ..models import Variation, Load, Date, Source, VariationSource
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Variation)
     
     # Get record count
     total_records = _get_table_count(cursor, "Variation")
@@ -1939,19 +1874,20 @@ def import_variations(cursor, dry_run):
             # Process the variation record
             if not dry_run:
                 with transaction.atomic():
-                    # Create or update the variation
-                    variation, created = Variation.objects.update_or_create(
+                    # Create variation with explicit ID to maintain the same record number
+                    variation = Variation.objects.create(
+                        id=var['var_id'],
                         cart_id=var['cart_id'],
-                        defaults={
-                            'load': load,
-                            'date': date,
-                            'description': var['description'],
-                            'cc': var['cc'],
-                            'acquisition_note': acquisition_note,
-                            'price': price,
-                            'note': clean_note,
-                            'updated_at': timezone.now()
-                        }
+                        load=load,
+                        date=date,
+                        description=var['description'],
+                        cc=var['cc'],
+                        acquisition_note=acquisition_note,
+                        price=price,
+                        note=clean_note,
+                        updated_at=timezone.now(),
+                        # Set image to None explicitly, as we're not importing images
+                        image=None
                     )
                     
                     # Process source links
@@ -2000,7 +1936,7 @@ def import_variations(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('var_id', 'id'),
+        ('var_id', 'id (preserved)'),
         ('cart_id', 'cart_id'),
         ('description', 'description'),
         ('var_type', '(used to determine if load or date is used)'),
@@ -2028,7 +1964,6 @@ def import_variations(cursor, dry_run):
         dry_run=dry_run
     )
 
-
 def import_boxes(cursor, dry_run):
     """
     Import box records from SQLite database
@@ -2038,6 +1973,10 @@ def import_boxes(cursor, dry_run):
     from django.db import transaction, IntegrityError
     from django.contrib.contenttypes.models import ContentType
     from ..models import Box, Country, Manufacturer, Headstamp, Load, Date, Variation, Source, BoxSource
+    
+    # Clear existing data if not in dry run mode
+    if not dry_run:
+        reset_table_and_sequence(Box)
     
     # Get record count
     total_records = _get_table_count(cursor, "Box")
@@ -2289,22 +2228,23 @@ def import_boxes(cursor, dry_run):
                         record_results.append(record_result)
                         continue
                         
-                    # Create or update the box
-                    box_obj, created = Box.objects.update_or_create(
+                    # Create box with explicit ID to maintain the same record number
+                    box_obj = Box.objects.create(
+                        id=box['box_id'],
                         bid=box['bid'],
-                        defaults={
-                            'location': box['location'],
-                            'description': box['description'],
-                            'art_type': artifact_type,
-                            'art_type_other': artifact_type_other,
-                            'cc': box['cc'],
-                            'acquisition_note': acquisition_note,
-                            'price': price,
-                            'note': clean_note,
-                            'content_type': content_type,
-                            'object_id': parent_obj.id,
-                            'updated_at': timezone.now()
-                        }
+                        location=box['location'],
+                        description=box['description'],
+                        art_type=artifact_type,
+                        art_type_other=artifact_type_other,
+                        cc=box['cc'],
+                        acquisition_note=acquisition_note,
+                        price=price,
+                        note=clean_note,
+                        content_type=content_type,
+                        object_id=parent_obj.id,  # Using the original ID from parent, which is now preserved
+                        updated_at=timezone.now(),
+                        # Set image to None explicitly, as we're not importing images
+                        image=None
                     )
                     
                     # Process source links
@@ -2353,7 +2293,7 @@ def import_boxes(cursor, dry_run):
     
     # Generate the import report using the utility function
     field_mapping_items = [
-        ('box_id', 'id'),
+        ('box_id', 'id (preserved)'),
         ('bid', 'bid'),
         ('location', 'location'),
         ('description', 'description'),
@@ -2392,6 +2332,8 @@ def import_records(request, caliber_code):
         'caliber': caliber,
         'all_calibers': all_calibers,
         'title': 'Import Records',
+        'import_mode': 'replace',  # Forcing 'replace' mode as the only option
+        'disable_merge_option': True,  # Flag to disable the merge option in the UI
     }
     
     # Define Django system tables that shouldn't be imported
@@ -2502,7 +2444,7 @@ def import_records(request, caliber_code):
             
             # Get import options
             selected_table = request.POST.get('selected_table')
-            import_mode = request.POST.get('import_mode', 'merge')
+            import_mode = request.POST.get('import_mode', 'replace')  # Default to replace
             import_images = request.POST.get('import_images') == 'yes'
             dry_run = request.POST.get('dry_run') == 'yes'
             
@@ -2552,7 +2494,7 @@ def import_records(request, caliber_code):
                 results += f"Table: {selected_table}\n"
                 results += f"Mode: {'Dry Run (no changes made)' if dry_run else 'Actual Import'}\n"
                 results += f"Import Type: {import_mode.capitalize()}\n"
-                results += f"Import Images: {'Yes' if import_images else 'No'}\n\n"
+                results += f"Import Images: {'No - images are not imported' if not import_images else 'Yes'}\n\n"
                 
                 # Import the selected table
                 import_results = None
