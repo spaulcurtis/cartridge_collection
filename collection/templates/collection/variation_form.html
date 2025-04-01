@@ -1,0 +1,283 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .form-container {
+        background-color: var(--theme-super-light);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 3px solid var(--theme-color);
+    }
+    .form-section {
+        margin-bottom: 1.5rem;
+    }
+    .form-section-title {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .action-buttons {
+        margin-top: 1.5rem;
+    }
+    .source-list {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0;
+    }
+    .source-item {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid var(--theme-color);
+    }
+    .source-form {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border: 1px dashed #dee2e6;
+    }
+    .source-actions {
+        margin-top: 0.5rem;
+    }
+    .add-source-btn {
+        margin-top: 1rem;
+    }
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'load_detail' caliber.code load.id %}">{{ load.cart_id }}</a></li>
+            {% if date %}
+            <li class="breadcrumb-item"><a href="{% url 'date_detail' caliber.code date.id %}">{{ date.cart_id }}</a></li>
+            {% endif %}
+            {% if variation %}
+            <li class="breadcrumb-item"><a href="{% url 'variation_detail' caliber.code variation.id %}">{{ variation.cart_id }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-4">{{ title }}</h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-container">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="form-section">
+                <h3 class="form-section-title">Variation Information</h3>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                        <div class="help-text">{{ form.description.help_text }}</div>
+                        {% endif %}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3 class="form-section-title">Collection Information</h3>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.cc.id_for_label }}" class="form-label">{{ form.cc.label }}</label>
+                        {{ form.cc }}
+                        {% if form.cc.help_text %}
+                        <div class="help-text">{{ form.cc.help_text }}</div>
+                        {% endif %}
+                        {% if form.cc.errors %}
+                        <div class="invalid-feedback d-block">{{ form.cc.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="{{ form.price.id_for_label }}" class="form-label">{{ form.price.label }}</label>
+                        {{ form.price }}
+                        {% if form.price.help_text %}
+                        <div class="help-text">{{ form.price.help_text }}</div>
+                        {% endif %}
+                        {% if form.price.errors %}
+                        <div class="invalid-feedback d-block">{{ form.price.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.acquisition_note.id_for_label }}" class="form-label">{{ form.acquisition_note.label }}</label>
+                        {{ form.acquisition_note }}
+                        {% if form.acquisition_note.help_text %}
+                        <div class="help-text">{{ form.acquisition_note.help_text }}</div>
+                        {% endif %}
+                        {% if form.acquisition_note.errors %}
+                        <div class="invalid-feedback d-block">{{ form.acquisition_note.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+                
+            <div class="form-section">
+                <h3 class="form-section-title">Details & Documentation</h3>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.note.id_for_label }}" class="form-label">{{ form.note.label }}</label>
+                        {{ form.note }}
+                        {% if form.note.help_text %}
+                        <div class="help-text">{{ form.note.help_text }}</div>
+                        {% endif %}
+                        {% if form.note.errors %}
+                        <div class="invalid-feedback d-block">{{ form.note.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">{{ form.image.label }}</label>
+                        {{ form.image }}
+                        {% if form.image.help_text %}
+                        <div class="help-text">{{ form.image.help_text }}</div>
+                        {% endif %}
+                        {% if form.image.errors %}
+                        <div class="invalid-feedback d-block">{{ form.image.errors }}</div>
+                        {% endif %}
+                        
+                        {% if variation and variation.image %}
+                        <div class="mt-2">
+                            <img src="{{ variation.image.url }}" alt="{{ variation.cart_id }}" style="max-height: 100px; max-width: 200px;" class="mt-2 border">
+                            <div class="help-text">Current image. Select a new file above to replace it.</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> {{ submit_text }}
+                </button>
+                
+                {% if variation %}
+                <a href="{% url 'variation_detail' caliber.code variation.id %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                {% elif date %}
+                <a href="{% url 'date_detail' caliber.code date.id %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                {% else %}
+                <a href="{% url 'load_detail' caliber.code load.id %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <!-- Sources section - only shown when editing an existing variation -->
+    {% if variation and source_form %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h3 class="h5 mb-0">Variation Sources</h3>
+        </div>
+        <div class="card-body">
+            {% if variation_sources %}
+            <h5>Current Sources</h5>
+            <ul class="source-list">
+                {% for source_link in variation_sources %}
+                <li class="source-item">
+                    <strong>{{ source_link.source.name }}</strong>
+                    {% if source_link.date_sourced %}
+                    <span class="text-muted"> - {{ source_link.date_sourced }}</span>
+                    {% endif %}
+                    
+                    {% if source_link.note %}
+                    <p class="mb-0 mt-1">{{ source_link.note }}</p>
+                    {% endif %}
+                    
+                    <div class="source-actions">
+                        <form method="post" action="{% url 'variation_remove_source' caliber_code=caliber.code variation_id=variation.id source_id=source_link.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No sources have been added for this variation.</p>
+            {% endif %}
+            
+            <h5 class="mt-4">Add New Source</h5>
+            <form method="post" action="{% url 'variation_add_source' caliber_code=caliber.code variation_id=variation.id %}" class="source-form">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ source_form.source.id_for_label }}" class="form-label">{{ source_form.source.label }}:</label>
+                            {{ source_form.source }}
+                            <div class="help-text">{{ source_form.source.help_text }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ source_form.date_sourced.id_for_label }}" class="form-label">{{ source_form.date_sourced.label }}:</label>
+                            {{ source_form.date_sourced }}
+                            <div class="help-text">{{ source_form.date_sourced.help_text }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ source_form.note.id_for_label }}" class="form-label">{{ source_form.note.label }}:</label>
+                    {{ source_form.note }}
+                    <div class="help-text">{{ source_form.note.help_text }}</div>
+                </div>
+                
+                <button type="submit" class="btn btn-success add-source-btn">
+                    <i class="bi bi-plus-circle"></i> Add Source
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

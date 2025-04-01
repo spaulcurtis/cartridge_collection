@@ -1,0 +1,210 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ caliber.name }} - Headstamp Search{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .sticky-header thead th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .alphabet-nav {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 20;
+        padding: 10px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .alphabet-nav a {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        margin: 0 1px;
+        border-radius: 4px;
+        text-decoration: none;
+        color: var(--theme-color);
+    }
+    
+    .alphabet-nav a:hover {
+        background-color: var(--theme-light);
+    }
+    
+    .alphabet-nav a.active {
+        background-color: var(--theme-color);
+        color: white;
+    }
+    
+    .alphabet-nav a.disabled {
+        color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .quick-jump {
+        position: fixed;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 100;
+        background-color: white;
+        border-radius: 30px;
+        padding: 10px 0;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .quick-jump a {
+        display: block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        font-size: 0.75rem;
+        text-decoration: none;
+        color: var(--theme-color);
+    }
+    
+    .quick-jump a:hover {
+        font-weight: bold;
+    }
+    
+    .quick-jump a.active {
+        font-weight: bold;
+    }
+    
+    @media (max-width: 768px) {
+        .quick-jump {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Headstamp Search</h2>
+        {% if query %}
+        <p class="text-muted">Results for "{{ query }}" in {{ caliber.name }} collection</p>
+        {% elif letter_filter %}
+        <p class="text-muted">Showing headstamps starting with "{{ letter_filter }}" in {{ caliber.name }} collection</p>
+        {% else %}
+        <p class="text-muted">All headstamps in {{ caliber.name }} collection</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card dashboard-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <form action="{% url 'headstamp_search' caliber.code %}" method="get" class="d-flex w-100">
+            <input type="text" name="q" class="form-control" placeholder="Search headstamps..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary ms-2">Search</button>
+            {% if query or letter_filter %}
+            <a href="{% url 'headstamp_search' caliber.code %}" class="btn btn-outline-secondary ms-2">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    {% if results %}
+    <div class="alphabet-nav text-center py-2">
+        {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+            {% if letter in available_letters %}
+                <a href="{% url 'headstamp_search' caliber.code %}?letter={{ letter }}" {% if letter_filter == letter %}class="active"{% endif %}>{{ letter }}</a>
+            {% else %}
+                <a href="#" class="disabled">{{ letter }}</a>
+            {% endif %}
+        {% endfor %}
+        <a href="{% url 'headstamp_search' caliber.code %}" {% if not letter_filter and not query %}class="active"{% endif %}>All</a>
+    </div>
+    
+    <div class="table-container">
+        <table class="table table-hover mb-0 sticky-header">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Manufacturer</th>
+                    <th>Country</th>
+                    <th>Credibility</th>
+                    <th>Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for headstamp in results %}
+                <tr id="letter-{{ headstamp.code|first|upper }}">
+                    <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.code }}</a></td>
+                    <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.name|default:"-" }}</a></td>
+                    <td>
+                        <a href="{% url 'manufacturer_detail' caliber.code headstamp.manufacturer.pk %}">
+                            {{ headstamp.manufacturer.code }}{% if headstamp.manufacturer.name %} - {{ headstamp.manufacturer.name|truncatechars:20 }}{% endif %}
+                        </a>
+                    </td>                    
+                    <td>{{ headstamp.manufacturer.country.name }}</td>
+                    <td>
+                        {% if headstamp.cc == 1 %}
+                        <span class="badge bg-success">in collection</span>
+                        {% elif headstamp.cc %}
+                        CC {{ headstamp.cc }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if headstamp.image %}
+                        <a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">
+                            <i class="bi bi-camera-fill text-success"></i>
+                        </a>
+                        {% else %}
+                        None
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Quick jump sidebar for larger result sets -->
+    {% if results.count > 50 and not query %}
+    <div class="quick-jump">
+        {% for letter in available_letters %}
+            <a href="#letter-{{ letter }}" {% if letter_filter == letter %}class="active"{% endif %}>{{ letter }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="card-body text-center py-5">
+        {% if query %}
+            <p class="mb-3"><i class="bi bi-search text-muted" style="font-size: 2rem;"></i></p>
+            <h4>No headstamps found</h4>
+            <p class="text-muted">No headstamps matching "{{ query }}" in the {{ caliber.name }} collection.</p>
+            <a href="{% url 'dashboard' caliber.code %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+        {% else %}
+            <p class="mb-3"><i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i></p>
+            <h4>No headstamps in collection</h4>
+            <p class="text-muted">There are no headstamps in the {{ caliber.name }} collection yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <span>Total: {{ total_count }} headstamp(s)</span>
+        <a href="{% url 'dashboard' caliber.code %}" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

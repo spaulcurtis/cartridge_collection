@@ -38,6 +38,26 @@
     .tooltip-inner {
         max-width: 300px;
     }
+    /* Sticky header styles */
+    .table-responsive {
+        max-height: 70vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa !important; /* Light gray neutral color */
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    }
+    .card-header-sticky {
+        position: sticky;
+        top: 0;
+        background-color: white !important;
+        z-index: 20;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
 </style>
 {% endblock %}
 
@@ -58,121 +78,122 @@
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col">
-            <a href="#" class="btn btn-success">
+    <div class="card shadow-sm">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Countries</h3>
+            <a href="{% url 'country_create' caliber.code %}" class="btn btn-sm btn-success">
                 <i class="bi bi-plus-circle"></i> Add New Country
             </a>
         </div>
-    </div>
-
-    <div class="row">
-        <div class="col">
-            <div class="card shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 20%">Country</th>
-                                    <th style="width: 25%">Full Name</th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Manufacturers">
-                                        <i class="bi bi-building"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Headstamps">
-                                        <i class="bi bi-record-circle"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Loads">
-                                        <i class="bi bi-battery"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Dates/Lots">
-                                        <i class="bi bi-calendar-date"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Load Variations">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Date Variations">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                    </th>
-                                    <th class="text-center" data-bs-toggle="tooltip" title="Boxes">
-                                        <i class="bi bi-box-seam"></i>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for country in countries %}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'country_detail' caliber.code country.id %}" class="country-name">
-                                            {{ country.name }}
-                                        </a>
-                                    </td>
-                                    <td>{{ country.full_name|default:"-" }}</td>
-                                    
-                                    <!-- Manufacturers -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.manuf_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Headstamps -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.headstamp_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.headstamp_image_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Loads -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.load_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.load_image_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Dates -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.date_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.date_image_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Load Variations -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.var_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.var_image_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Date Variations -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.date_var_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.date_var_image_count }}</span>
-                                        </div>
-                                    </td>
-                                    
-                                    <!-- Boxes -->
-                                    <td class="stat-cell">
-                                        <div class="browse-count">
-                                            <span class="browse-count-item">{{ country.box_count }}</span>
-                                            <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.box_image_count }}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="9" class="text-center py-4">No countries available for this caliber.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 20%">Country</th>
+                            <th style="width: 25%">Full Name</th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Manufacturers">
+                                <small>Man</small><br>
+                                <i class="bi bi-building"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Headstamps">
+                                <small>HS</small><br>
+                                <i class="bi bi-record-circle"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Loads">
+                                <small>Load</small><br>
+                                <i class="bi bi-battery"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Dates/Lots">
+                                <small>Date</small><br>
+                                <i class="bi bi-calendar-date"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Load Variations">
+                                <small>Load Var</small><br>
+                                <i class="bi bi-arrow-repeat"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Date Variations">
+                                <small>Date Var</small><br>
+                                <i class="bi bi-arrow-repeat"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Boxes">
+                                <small>Box</small><br>
+                                <i class="bi bi-box-seam"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for country in countries %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'country_detail' caliber.code country.id %}" class="country-name">
+                                    {{ country.name }}
+                                </a>
+                            </td>
+                            <td>{{ country.full_name|default:"-" }}</td>
+                            
+                            <!-- Manufacturers -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.manuf_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Headstamps -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.headstamp_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.headstamp_image_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Loads -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.load_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.load_image_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Dates -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.date_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.date_image_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Load Variations -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.var_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.var_image_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Date Variations -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.date_var_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.date_var_image_count }}</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Boxes -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <span class="browse-count-item">{{ country.box_count }}</span>
+                                    <span class="browse-count-image ms-1"><i class="bi bi-camera"></i> {{ country.box_image_count }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">No countries available for this caliber.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

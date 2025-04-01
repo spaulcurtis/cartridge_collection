@@ -158,6 +158,7 @@ class BaseCollectionItem(models.Model):
     price = models.DecimalField("Price/Value", max_digits=10, decimal_places=2, blank=True, null=True)
     note = models.TextField("Notes", blank=True, null=True)
     image = models.ImageField(upload_to='artifacts/', blank=True, null=True)
+    legacy_id = models.CharField("Legacy ID", max_length=20, blank=True, null=True)
     
     def image_count(self):
         """Return 1 if this item has an image, 0 otherwise"""
@@ -209,6 +210,9 @@ class Country(BaseEntity):
     caliber = models.ForeignKey(Caliber, on_delete=models.CASCADE)
     name = models.CharField("Country Code/Name", max_length=100, unique=True)
     full_name = models.CharField("Full Country Name", max_length=255, blank=True, null=True)
+    short_name = models.CharField("Short Country Name", max_length=8, blank=True, null=True)
+    description = models.TextField("Country Description", blank=True, null=True)
+
     
     def __str__(self):
         return self.name
@@ -345,7 +349,7 @@ class Load(BaseCollectionItem):
     headstamp = models.ForeignKey(Headstamp, on_delete=models.PROTECT, related_name='loads')
     
     def __str__(self):
-        return f"{self.cart_id}" if not self.load_type else f"{self.cart_id} - {self.load_type}"
+        return self.cart_id
     
     def total_image_count(self):
         """Include images from this load and all its descendants"""
@@ -421,8 +425,7 @@ class Date(BaseCollectionItem):
     load = models.ForeignKey(Load, on_delete=models.PROTECT, related_name='dates')
     
     def __str__(self):
-        year_lot = f"{self.year or ''} {self.lot_month or ''}".strip()
-        return f"{self.cart_id}" if not year_lot else f"{self.cart_id} - {year_lot}"
+        return self.cart_id
     
     def total_image_count(self):
         """Include images from this date and all its descendants"""
@@ -489,9 +492,7 @@ class Variation(BaseCollectionItem):
     date = models.ForeignKey(Date, on_delete=models.PROTECT, blank=True, null=True, related_name='date_variations')
     
     def __str__(self):
-        parent = self.load or self.date
-        parent_type = "Load" if self.load else "Date"
-        return f"{self.cart_id}" if not self.description else f"{self.cart_id} - {self.description}"
+        return self.cart_id
     
     def clean(self):
         """Ensure either load or date is set, but not both"""
@@ -570,7 +571,7 @@ class Box(BaseCollectionItem):
     
     def save(self, *args, **kwargs):
         # Automatically generate bid if not provided
-        if not self.bid and not self.pk:
+        if not self.pk:
             # Get the next available ID
             last_box = Box.objects.order_by('-pk').first()
             next_id = (last_box.pk + 1) if last_box else 1

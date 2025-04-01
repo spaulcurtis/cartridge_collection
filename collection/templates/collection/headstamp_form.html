@@ -1,0 +1,295 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .form-container {
+        background-color: var(--theme-super-light);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 3px solid var(--theme-color);
+    }
+    .form-header {
+        margin-bottom: 1.5rem;
+    }
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffecb5;
+        color: #664d03;
+    }
+    .confidential-note-example {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .preview-image {
+        max-height: 200px;
+        max-width: 100%;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+        margin-top: 0.5rem;
+    }
+    .source-list {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0;
+    }
+    .source-item {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid var(--theme-color);
+    }
+    .source-form {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border: 1px dashed #dee2e6;
+    }
+    .source-actions {
+        margin-top: 0.5rem;
+    }
+    .add-source-btn {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            {% if headstamp %}
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            {% else %}
+            <li class="breadcrumb-item active" aria-current="page">Add Headstamp</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <!-- Form header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ title }}</h2>
+            <p>{% if headstamp %}Update information for this headstamp{% else %}Add a new headstamp to {{ manufacturer.code }}{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6">
+                    <!-- Code -->
+                    <div class="form-group">
+                        <label for="{{ form.code.id_for_label }}" class="form-label">{{ form.code.label }}:</label>
+                        {{ form.code }}
+                        {% if form.code.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.code.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.code.help_text }}</div>
+                    </div>
+
+                    <!-- Name -->
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}:</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.name.help_text }}</div>
+                    </div>
+
+                    <!-- Primary Manufacturer -->
+                    <div class="form-group">
+                        <label for="{{ form.primary_manufacturer.id_for_label }}" class="form-label">{{ form.primary_manufacturer.label }}:</label>
+                        {{ form.primary_manufacturer }}
+                        {% if form.primary_manufacturer.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.primary_manufacturer.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.primary_manufacturer.help_text }}</div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <!-- Credibility Code -->
+                    <div class="form-group">
+                        <label for="{{ form.cc.id_for_label }}" class="form-label">{{ form.cc.label }}:</label>
+                        {{ form.cc }}
+                        {% if form.cc.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.cc.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.cc.help_text }}</div>
+                    </div>
+
+                    <!-- Image -->
+                    <div class="form-group">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">{{ form.image.label }}:</label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.image.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.image.help_text }}</div>
+                        
+                        {% if headstamp and headstamp.image %}
+                        <div class="mt-2">
+                            <p>Current image:</p>
+                            <img src="{{ headstamp.image.url }}" alt="{{ headstamp.code }}" class="preview-image">
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group">
+                <label for="{{ form.note.id_for_label }}" class="form-label">{{ form.note.label }}:</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.note.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="help-text">
+                    {{ form.note.help_text }}
+                    <div class="confidential-note-example mt-2">
+                        <strong>Example:</strong> Regular note text &#123;&#123;this is confidential&#125;&#125; more regular text.
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                {% if headstamp %}
+                <a href="{% url 'headstamp_detail' caliber.code headstamp.id %}" class="btn btn-secondary">Cancel</a>
+                {% else %}
+                <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="btn btn-secondary">Cancel</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Sources section - only shown when editing an existing headstamp -->
+    {% if headstamp and source_form %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h3 class="h5 mb-0">Headstamp Sources</h3>
+        </div>
+        <div class="card-body">
+            {% if headstamp_sources %}
+            <h5>Current Sources</h5>
+            <ul class="source-list">
+                {% for source_link in headstamp_sources %}
+                <li class="source-item">
+                    <strong>{{ source_link.source.name }}</strong>
+                    {% if source_link.date_sourced %}
+                    <span class="text-muted"> - {{ source_link.date_sourced }}</span>
+                    {% endif %}
+                    
+                    {% if source_link.note %}
+                    <p class="mb-0 mt-1">{{ source_link.note }}</p>
+                    {% endif %}
+                    
+                    <div class="source-actions">
+                        <form method="post" action="{% url 'headstamp_remove_source' caliber_code=caliber.code headstamp_id=headstamp.id source_id=source_link.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No sources have been added for this headstamp.</p>
+            {% endif %}
+            
+            <h5 class="mt-4">Add New Source</h5>
+            <form method="post" action="{% url 'headstamp_add_source' caliber_code=caliber.code headstamp_id=headstamp.id %}" class="source-form">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ source_form.source.id_for_label }}" class="form-label">{{ source_form.source.label }}:</label>
+                            {{ source_form.source }}
+                            <div class="help-text">{{ source_form.source.help_text }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ source_form.date_sourced.id_for_label }}" class="form-label">{{ source_form.date_sourced.label }}:</label>
+                            {{ source_form.date_sourced }}
+                            <div class="help-text">{{ source_form.date_sourced.help_text }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ source_form.note.id_for_label }}" class="form-label">{{ source_form.note.label }}:</label>
+                    {{ source_form.note }}
+                    <div class="help-text">{{ source_form.note.help_text }}</div>
+                </div>
+                
+                <button type="submit" class="btn btn-success add-source-btn">
+                    <i class="bi bi-plus-circle"></i> Add Source
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -2,39 +2,7 @@
 
 ## Extensible Lookup Tables
 
-I entered these by hand after using a python script to find all unique values in the existing database.
-I entered the "leagacy_values" as json.  I was told "your parsing code would be"
-
-'''
-
-    import json
-    legacy_values = json.loads(lookup_record.legacy_mappings)
-'''
-
-This was AI telling me what do do before I decided to use JSON.  Migration Logic: When migrating data, your script would use these mappings to convert old values to new references:
-
-'''
-
-    def get_case_type_for_legacy_value(legacy_value):
-        """Find the CaseType object that matches a legacy value"""
-        for case_type in CaseType.objects.all():
-            if not case_type.legacy_mappings:
-                continue
-                
-            # Check if the legacy value matches any of the mapped values
-            legacy_values = [v.strip() for v in case_type.legacy_mappings.split(',')]
-            if legacy_value in legacy_values:
-                return case_type
-                
-        # If no match found, create a new one or use a default
-        return CaseType.objects.get_or_create(
-            value=legacy_value.lower(),
-            display_name=legacy_value,
-            is_common=False
-        )[0]
-
-'''
-
+They're good
 
 ## Source Tables
 
@@ -76,6 +44,8 @@ I migrated the country records by using "migrate_country.py".  I then manually a
 
 This was a mistake.  CLEAN UP COUNTRY ISSUES AFTER MIGRATION.
 
+Country is now part of Django app import.
+
 ## Migrating Manufacturer
 
 The new database schema requires country/man code compbo to be unique.  It wasn't, since US had two RMIs.  I renamed one to RMI2 (it had no children).  The AI said it changed the program to gracefully handle this and just note in log file, but I don't think it did correctly.
@@ -90,24 +60,44 @@ DELETE FROM sqlite_sequence WHERE name='collection_manufacturer';
 
 The third line resets the auto-index counter so the next import will start at 1.
 
+Manufacturer  is now part of Django app import.
+
+
 ## Current Status
 
-The migration scripts are not finalized, but good enough to import data for development down to Load.  Still need Date, Variation, and Box migration.
-For Poppy's real data import:
+First manually empty the target database readying it for migration.  Run "empty_for_migration.py"
 
-1. Clean up source database Load Type ("HS Only" for anything with blank)
-2. rename the second SMI to SMI2.  Rename second AP01B to AP01B-2
-3. Leave contries
-4. Use data_migration scripts to pull in country and manufacturer.  If you redo, don't forget to reset indexes.
-5. Use web app to pull in Headstamp and Load
+Then prep the source database by running "old_db_prep_for_migration.py"  This will
+Delete boxes with Sup ID of 0
+Change load_type of blank or NULL to "various"
+Move mis-linked boxes to UNK country.
 
-Longer term migration clean up
-1. Fix default for load_type
-2. Pull all migration into web app (vs data migration scripts)
-3. Correctly handle "replace" including reseting indexes.
-4. Add spreadsheets and other formats
+Should have already renamed the second SMI to SMI2 and the second AP01B to AP01B-2
 
+Use Web App to pull in each table.
 
+After migration run the shell commands below to set legacy_id
+python manage.py shell
+
+from collection.models import Load, Date, Variation, Box
+
+for obj in Load.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+for obj in Date.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+for obj in Variation.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+for obj in Box.objects.all():
+    obj.legacy_id = obj.bid
+    obj.save()
+
+Then you can clean up and improve Countries, potentially relinking UAE and deleting one.
 
 /* Indexes for collection_manufacturer Table */
 CREATE INDEX IF NOT EXISTS idx_collection_manufacturer_country_id ON collection_manufacturer (country_id);
@@ -128,3 +118,5 @@ CREATE INDEX IF NOT EXISTS idx_collection_variation_date_id ON collection_variat
 /* Indexes for collection_box Table (Generic Relation) */
 CREATE INDEX IF NOT EXISTS idx_collection_box_content_type_id ON collection_box (content_type_id);
 CREATE INDEX IF NOT EXISTS idx_collection_box_object_id ON collection_box (object_id);
+
+

@@ -1,0 +1,27 @@
+Add a country description, and display it on the right on country_details view.
+Add a legacy_id.  For now it is unused, but there if anyone needs it in the future.  We could use it for mismarked cartridges.
+
+
+For legacy ID:
+python manage.py shell
+
+from collection.models import Load, Date, Variation, Box
+
+# Load models
+for obj in Load.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+for obj in Date.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+for obj in Variation.objects.all():
+    obj.legacy_id = obj.cart_id
+    obj.save()
+
+# Box model
+for obj in Box.objects.all():
+    obj.legacy_id = obj.bid
+    obj.save()
+

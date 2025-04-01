@@ -1,0 +1,139 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .form-container {
+        background-color: var(--theme-super-light);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 3px solid var(--theme-color);
+    }
+    .form-header {
+        margin-bottom: 1.5rem;
+    }
+    .help-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffecb5;
+        color: #664d03;
+    }
+    .confidential-note-example {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            {% if manufacturer %}
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            {% else %}
+            <li class="breadcrumb-item active" aria-current="page">Add Manufacturer</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <!-- Form header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ title }}</h2>
+            <p>{% if manufacturer %}Update information for this manufacturer{% else %}Add a new manufacturer to {{ country.name }}{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="form-container">
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.code.id_for_label }}" class="form-label">{{ form.code.label }}:</label>
+                        {{ form.code }}
+                        {% if form.code.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.code.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.code.help_text }}</div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}:</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="help-text">{{ form.name.help_text }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.note.id_for_label }}" class="form-label">{{ form.note.label }}:</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.note.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="help-text">
+                    {{ form.note.help_text }}
+                    <div class="confidential-note-example mt-2">
+                        <strong>Example:</strong> Regular note text &#123;&#123;this is confidential&#125;&#125; more regular text.
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                {% if manufacturer %}
+                <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="btn btn-secondary">Cancel</a>
+                {% else %}
+                <a href="{% url 'country_detail' caliber.code country.id %}" class="btn btn-secondary">Cancel</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

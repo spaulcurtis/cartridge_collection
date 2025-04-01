@@ -1,0 +1,355 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ caliber.name }} - {{ country.name }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .country-header {
+        background-color: var(--theme-super-light);
+        border-left: 3px solid var(--theme-color);
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .browse-count {
+        display: flex;
+        align-items: center;
+    }
+    .browse-count-item {
+        background-color: rgba(58, 124, 165, 0.1);
+        color: var(--theme-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        margin-left: 0.3rem;
+        white-space: nowrap;
+    }
+    .browse-count-image {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .stat-cell {
+        text-align: center;
+    }
+    .manuf-code {
+        font-weight: 500;
+    }
+    .badge-cc {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+    .badge-cc-collection {
+        background-color: #28a745;
+    }
+    .table-responsive {
+        margin-bottom: 2rem;
+    }
+    /* Sticky header styles */
+    .table-responsive {
+        max-height: 70vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa !important; /* Light gray neutral color */
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    }
+    .card-header-sticky {
+        position: sticky;
+        top: 0;
+        background-color: white !important;
+        z-index: 20;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+    /* Note styling */
+    .note-section {
+        margin-bottom: 1rem;
+    }
+    .public-notes {
+        margin-bottom: 0.5rem;
+    }
+    .confidential-notes {
+        color: #6c757d;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-left: 3px solid #6c757d;
+        margin-top: 0.5rem;
+    }
+    .table th {
+        vertical-align: middle;
+        text-align: center; /* Ensure column headers are centered */
+    }
+    .stat-cell {
+        text-align: center;
+    }
+    .browse-count {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* Center the content horizontally */
+    }
+    .count-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .table th:nth-child(1),
+    .table th:nth-child(2),
+    .table td:nth-child(1),
+    .table td:nth-child(2) {
+        text-align: left;
+    }
+    .box-table th, 
+    .box-table td {
+    text-align: left;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ country.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Country Details -->
+    <div class="country-header">
+        <div class="row">
+            <div class="col-md-6">
+                <h2>{{ country.name }} {% if country.short_name %} ({{ country.short_name }}) {% endif %}</h2>
+                {% if country.full_name %}
+                <p><strong>Full Name:</strong> {{ country.full_name }}</p>
+                {% endif %}
+                {% if country.description %}
+                <p class="mb-1"><strong>Description:</strong></p>
+                <p class="mb-2">{{ country.description }}</p>
+                {% endif %}
+                {% include 'collection/includes/note_display_python.html' with has_notes=country.note_has_notes public_notes=country.note_public_notes confidential_notes=country.note_confidential_notes has_confidential=country.note_has_confidential label="Notes" %}
+            </div>
+            <div class="col-md-6">
+                <div class="action-buttons">
+                    <a href="{% url 'country_update' caliber.code country.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'country_delete' caliber.code country.id %}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manufacturers List -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Manufacturers</h3>
+            <a href="{% url 'manufacturer_create' caliber.code country.id %}" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-circle"></i> Add Manufacturer
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 15%">Code</th>
+                            <th style="width: 25%">Name</th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Headstamps">
+                                <small>HS</small><br>
+                                <i class="bi bi-record-circle"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Loads">
+                                <small>Load</small><br>
+                                <i class="bi bi-battery"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Dates/Lots">
+                                <small>Date</small><br>
+                                <i class="bi bi-calendar-date"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Load Variations">
+                                <small>Load Var</small><br>
+                                <i class="bi bi-arrow-repeat"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Date Variations">
+                                <small>Date Var</small><br>
+                                <i class="bi bi-arrow-repeat"></i>
+                            </th>
+                            <th class="text-center" data-bs-toggle="tooltip" title="Boxes">
+                                <small>Box</small><br>
+                                <i class="bi bi-box-seam"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manufacturer in manufacturers %}
+                        <tr>
+                                                            <td>
+                                <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="manuf-code">
+                                    {{ manufacturer.code }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="text-decoration-none">
+                                    {{ manufacturer.name|default:"-" }}
+                                </a>
+                            </td>
+                            
+                            <!-- Headstamps -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.headstamp_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.headstamp_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+
+
+                            <!-- Loads -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.load_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.load_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Dates -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.date_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.date_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Load Variations -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.var_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.var_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Date Variations -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.date_var_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.date_var_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Boxes -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ manufacturer.box_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ manufacturer.box_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">No manufacturers available for this country.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Direct Boxes List -->
+    <div class="card shadow-sm">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Boxes</h3>
+            <a href="{% url 'box_create' caliber_code=caliber.code model_name='country' object_id=country.id %}" class="btn btn-sm btn-info">
+                <i class="bi bi-plus-circle"></i> Add Box
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover box-table mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 10%">Box ID</th>
+                            <th style="width: 40%">Description</th>
+                            <th style="width: 20%">Location</th>
+                            <th style="width: 15%">Credibility</th>
+                            <th style="width: 15%">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for box in direct_boxes %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'box_detail' caliber_code=caliber.code box_id=box.id %}">{{ box.bid }}</a>
+                            </td>
+                            <td>
+                                <a href="{% url 'box_detail' caliber_code=caliber.code box_id=box.id %}">{{ box.description }}</a>
+                            </td>
+                            <td>{{ box.location|default:"-" }}</td>
+                            <td>
+                                {% if box.cc == 1 %}
+                                <span class="badge-cc badge-cc-collection">In Collection</span>
+                                {% else %}
+                                {{ box.cc }}
+                                {% endif %}
+                            </td>
+                            <td>{{ box.get_art_type_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">No boxes directly assigned to this country.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

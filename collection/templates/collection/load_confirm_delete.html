@@ -1,0 +1,170 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .delete-container {
+        background-color: #f8d7da;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 3px solid #dc3545;
+    }
+    .load-info {
+        background-color: rgba(0,0,0,0.05);
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+    }
+    .action-buttons {
+        margin-top: 2rem;
+    }
+    .warning-icon {
+        font-size: 3rem;
+        color: #dc3545;
+        margin-bottom: 1rem;
+    }
+    .dependencies-alert {
+        margin-top: 1.5rem;
+    }
+    .load-image {
+        max-width: 100%;
+        max-height: 150px;
+        border-radius: 4px;
+        margin-top: 1rem;
+        border: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'load_detail' caliber.code load.id %}">{{ load.cart_id }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Delete</li>
+        </ol>
+    </nav>
+
+    <!-- Delete confirmation -->
+    <div class="delete-container">
+        <div class="text-center">
+            <div class="warning-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2>Confirm Deletion</h2>
+            <p class="lead">Are you sure you want to delete the load "{{ load.cart_id }}"?</p>
+        </div>
+
+        <div class="load-info">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4>Load Details:</h4>
+                    <ul>
+                        <li><strong>Load ID:</strong> {{ load.cart_id }}</li>
+                        {% if load.description %}
+                        <li><strong>Description:</strong> {{ load.description }}</li>
+                        {% endif %}
+                        <li><strong>Load Type:</strong> {{ load.load_type.display_name }}</li>
+                        {% if load.bullet %}
+                        <li><strong>Bullet Type:</strong> {{ load.bullet.display_name }}</li>
+                        {% endif %}
+                        {% if load.case_type %}
+                        <li><strong>Case Type:</strong> {{ load.case_type.display_name }}</li>
+                        {% endif %}
+                        {% if load.primer %}
+                        <li><strong>Primer Type:</strong> {{ load.primer.display_name }}</li>
+                        {% endif %}
+                        {% if load.pa_color %}
+                        <li><strong>Primer Annulus Color:</strong> {{ load.pa_color.display_name }}</li>
+                        {% endif %}
+                        <li><strong>Is Magnetic:</strong> {{ load.is_magnetic|yesno:"Yes,No" }}</li>
+                        <li><strong>Headstamp:</strong> {{ headstamp.code }}</li>
+                        <li><strong>Manufacturer:</strong> {{ manufacturer.code }}{% if manufacturer.name %} ({{ manufacturer.name }}){% endif %}</li>
+                        <li><strong>Country:</strong> {{ country.name }}{% if country.full_name %} ({{ country.full_name }}){% endif %}</li>
+                        <li><strong>Credibility Code:</strong> {{ load.get_cc_display }}</li>
+                    </ul>
+                    
+                    {% if load_notes.has_notes %}
+                    <div class="mt-3">
+                        {% if load_notes.public_notes %}
+                        <div>
+                            <strong>Notes:</strong> {{ load_notes.public_notes }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if load_notes.has_confidential %}
+                        <div class="mt-2">
+                            <strong>Confidential Notes:</strong> {{ load_notes.confidential_notes }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if load.image %}
+                <div class="col-md-4 text-center">
+                    <img src="{{ load.image.url }}" alt="{{ load.cart_id }}" class="load-image">
+                </div>
+                {% elif headstamp.image %}
+                <div class="col-md-4 text-center">
+                    <img src="{{ headstamp.image.url }}" alt="{{ headstamp.code }}" class="load-image">
+                    <p class="text-muted mt-1"><small>Headstamp image shown (load has no image)</small></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if has_dates or has_variations or has_boxes %}
+        <div class="alert alert-danger dependencies-alert">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Cannot Delete:</strong> This load has dependencies that must be removed first.
+            
+            <ul class="mt-2 mb-0">
+                {% if has_dates %}
+                <li>This load has dates/lots associated with it.</li>
+                {% endif %}
+                
+                {% if has_variations %}
+                <li>This load has variations associated with it.</li>
+                {% endif %}
+                
+                {% if has_boxes %}
+                <li>This load has boxes directly associated with it.</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <strong>Warning:</strong> This action cannot be undone. Deleting this load will permanently remove it from the database.
+        </div>
+        {% endif %}
+
+        <div class="action-buttons text-center">
+            {% if can_delete %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-trash me-2"></i> Delete Load
+                </button>
+                <a href="{% url 'load_detail' caliber.code load.id %}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i> Cancel
+                </a>
+            </form>
+            {% else %}
+            <a href="{% url 'load_detail' caliber.code load.id %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i> Back to Load Details
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
