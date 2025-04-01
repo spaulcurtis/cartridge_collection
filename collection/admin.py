@@ -81,26 +81,26 @@ class BoxSourceAdmin(admin.ModelAdmin):
 # Country admin
 @admin.register(Country)
 class CountryAdmin(admin.ModelAdmin):
-    list_display = ('caliber', 'name', 'full_name', 'id')
-    search_fields = ('name', 'full_name', 'note')
+    list_display = ('caliber', 'name', 'short_name','full_name', 'id')
+    search_fields = ('name', 'short_name', 'full_name', 'note')
     list_filter = ('caliber',)
-    ordering = ('name',)
+    ordering = ('caliber', 'name',)
 
 # Manufacturer admin
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'country', 'id')
-    list_filter = ('country',)
+    list_display = ('country__caliber', 'code', 'name', 'country', 'id')
+    list_filter = ('country__caliber', 'country',)
     search_fields = ('code', 'name', 'note')
-    ordering = ('country__name', 'code')
+    ordering = ('country__caliber', 'country__name', 'code')
 
 # Headstamp admin with image display
 @admin.register(Headstamp)
 class HeadstampAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'manufacturer', 'primary_manufacturer', 'cc', 'image_tag', 'id')
-    list_filter = ('manufacturer__country', 'cc', 'manufacturer')
+    list_display = ('code', 'name', 'manufacturer', 'primary_manufacturer', 'id')
+    list_filter = ('manufacturer__country__caliber', 'manufacturer__country', 'manufacturer')
     search_fields = ('code', 'name', 'note')
-    ordering = ('manufacturer__country__name', 'manufacturer__code', 'code')
+    ordering = ('manufacturer__country__caliber', 'code')
     readonly_fields = ('image_preview',)
     
     def image_tag(self, obj):
@@ -123,10 +123,10 @@ class HeadstampSourceInline(admin.TabularInline):
 # Load admin with image display
 @admin.register(Load)
 class LoadAdmin(admin.ModelAdmin):
-    list_display = ('cart_id', 'headstamp', 'load_type', 'bullet', 'case_type', 'is_magnetic', 'image_tag', 'id')
-    list_filter = ('headstamp__manufacturer__country', 'load_type', 'case_type', 'is_magnetic', 'cc')
+    list_display = ('cart_id', 'headstamp', 'load_type', 'bullet', 'case_type', 'id')
+    list_filter = ('headstamp__manufacturer__country__caliber','headstamp__manufacturer__country', 'load_type')
     search_fields = ('cart_id', 'description', 'note', 'headstamp__code')
-    ordering = ('cart_id',)
+    ordering = ('headstamp__manufacturer__country__caliber', 'id',)
     readonly_fields = ('image_preview',)
     
     def image_tag(self, obj):
@@ -149,10 +149,10 @@ class LoadSourceInline(admin.TabularInline):
 # Date admin with image display
 @admin.register(Date)
 class DateAdmin(admin.ModelAdmin):
-    list_display = ('cart_id', 'year', 'lot_month', 'load', 'cc', 'image_tag', 'id')
-    list_filter = ('load__headstamp__manufacturer__country', 'cc', 'year')
+    list_display = ('cart_id', 'year', 'lot_month', 'load','id')
+    list_filter = ('load__headstamp__manufacturer__country__caliber', 'load__headstamp__manufacturer__country')
     search_fields = ('cart_id', 'year', 'lot_month', 'description', 'note')
-    ordering = ('cart_id',)
+    ordering = ('load__headstamp__manufacturer__country__caliber', 'id')
     readonly_fields = ('image_preview',)
     
     def image_tag(self, obj):
@@ -175,10 +175,10 @@ class DateSourceInline(admin.TabularInline):
 # Variation admin with image display
 @admin.register(Variation)
 class VariationAdmin(admin.ModelAdmin):
-    list_display = ('cart_id', 'load', 'date', 'description', 'cc', 'image_tag', 'id')
+    list_display = ('cart_id', 'load', 'date', 'description', 'id')
     list_filter = ('cc',)
     search_fields = ('cart_id', 'description', 'note')
-    ordering = ('cart_id',)
+    ordering = ('id',)
     readonly_fields = ('image_preview',)
     
     def image_tag(self, obj):

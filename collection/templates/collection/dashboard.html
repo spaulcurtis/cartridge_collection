@@ -104,6 +104,39 @@
         margin-bottom: 1rem;
         display: block;
     }
+    /* Updated styles for activity timeline table */
+    .activity-table-container {
+        max-height: 400px; /* Adjust to match Browse Collection card height */
+        overflow-y: auto;
+        border-radius: 0 0 0.5rem 0.5rem;
+    }
+    
+    .activity-table th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 10;
+        box-shadow: 0 2px 4px -2px rgba(0,0,0,0.1);
+    }
+    
+    .activity-icon {
+        color: var(--theme-color);
+        font-size: 1.2rem;
+    }
+    
+    .activity-table tr {
+        vertical-align: middle;
+    }
+    
+    .activity-table td {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .activity-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+        white-space: nowrap;
+    }
 </style>
 {% endblock %}
 
@@ -210,41 +243,79 @@
             </div>
         </div>
         
-        <!-- Recent Section Moved Up -->
-        <div class="col-lg-6">
-            <div class="card dashboard-card mb-3">
+        <!-- Activity Timeline as a Table (replacing the Recent Headstamps) -->
+        <div class="col-lg-6 mb-3">
+            <div class="card dashboard-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Headstamps</h5>
-                    <a href="{% url 'headstamp_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <h5 class="mb-0">Recent Activity</h5>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                <div class="activity-table-container">
+                    {% if recent_activities %}
+                    <table class="table table-hover mb-0 activity-table">
                         <thead>
                             <tr>
-                                <th>Code</th>
-                                <th>Manufacturer</th>
-                                <th>Name</th>
+                                <th width="40"></th>
+                                <th>Item</th>
+                                <th>Details</th>
+                                <th>When</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for headstamp in recent_headstamps %}
+                            {% for activity in recent_activities %}
                             <tr>
-                                <td>{{ headstamp.code }}</td>
-                                <td>{{ headstamp.manufacturer.code }}</td>
-                                <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.name|default:"-"|truncatechars:30 }}</a></td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center">No headstamps available</td>
+                                <td class="text-center">
+                                    {% if activity.item_type == 'headstamp' %}
+                                    <i class="bi bi-record-circle activity-icon"></i>
+                                    {% elif activity.item_type == 'load' %}
+                                    <i class="bi bi-battery activity-icon"></i>
+                                    {% elif activity.item_type == 'date' %}
+                                    <i class="bi bi-calendar-date activity-icon"></i>
+                                    {% elif activity.item_type == 'box' %}
+                                    <i class="bi bi-box-seam activity-icon"></i>
+                                    {% else %}
+                                    <i class="bi bi-pencil activity-icon"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ activity.item_type|title }}</strong>
+                                    {% if activity.item_type == 'headstamp' %}
+                                    <a href="{% url 'headstamp_detail' caliber.code activity.pk %}">{{ activity.display_text }}</a>
+                                    {% elif activity.item_type == 'load' %}
+                                    <a href="{% url 'load_detail' caliber.code activity.pk %}">{{ activity.display_text }}</a>
+                                    {% elif activity.item_type == 'date' %}
+                                    <a href="{% url 'date_detail' caliber.code activity.pk %}">{{ activity.display_text }}</a>
+                                    {% elif activity.item_type == 'box' %}
+                                    <a href="{% url 'box_detail' caliber.code activity.pk %}">{{ activity.display_text }}</a>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if activity.parent_name %}
+                                    {% if activity.item_type == 'headstamp' %}
+                                    under {{ activity.parent_name }}
+                                    {% elif activity.item_type == 'load' %}
+                                    under {{ activity.parent_name }}
+                                    {% elif activity.item_type == 'date' %}
+                                    for {{ activity.parent_name }}
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td class="activity-time">
+                                    {{ activity.created_at|timesince }} ago
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% else %}
+                    <div class="text-center p-4">
+                        <p class="text-muted mb-0">No recent activity to display</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
+
     </div>
-    
     <!-- Quick Actions -->
     <div class="row mb-4">
         <div class="col-12">
@@ -281,76 +352,6 @@
         </div>
     </div>
     
-    <!-- Recent Loads and Boxes -->
-    <div class="row">
-        <div class="col-lg-6 mb-4">
-            <div class="card dashboard-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Loads</h5>
-                    <a href="{% url 'load_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Type</th>
-                                <th>Headstamp</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for load in recent_loads %}
-                            <tr>
-                                <td>{{ load.cart_id }}</td>
-                                <td><a href="{% url 'load_detail' caliber.code load.pk %}">{{ load.load_type.display_name }}</a></td>
-                                <td>{{ load.headstamp.code }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center">No loads available</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-6 mb-4">
-            <div class="card dashboard-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Boxes</h5>
-                    <a href="{% url 'box_list' caliber.code %}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Description</th>
-                                <th>Type</th>
-                                <th>Parent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for box in recent_boxes %}
-                            <tr>
-                                <td>{{ box.bid }}</td>
-                                <td><a href="{% url 'box_detail' caliber.code box.pk %}">{{ box.description|default:"-"|truncatechars:20 }}</a></td>
-                                <td>{{ box.get_art_type_display }}</td>
-                                <td>{{ box.get_parent_display }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center">No boxes available</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 {% endblock %}

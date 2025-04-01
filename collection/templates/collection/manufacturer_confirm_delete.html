@@ -1,0 +1,130 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .delete-container {
+        background-color: #f8d7da;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 3px solid #dc3545;
+    }
+    .manufacturer-info {
+        background-color: rgba(0,0,0,0.05);
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+    }
+    .action-buttons {
+        margin-top: 2rem;
+    }
+    .warning-icon {
+        font-size: 3rem;
+        color: #dc3545;
+        margin-bottom: 1rem;
+    }
+    .dependencies-alert {
+        margin-top: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Delete</li>
+        </ol>
+    </nav>
+
+    <!-- Delete confirmation -->
+    <div class="delete-container">
+        <div class="text-center">
+            <div class="warning-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2>Confirm Deletion</h2>
+            <p class="lead">Are you sure you want to delete the manufacturer "{{ manufacturer.code }}"?</p>
+        </div>
+
+        <div class="manufacturer-info">
+            <h4>Manufacturer Details:</h4>
+            <ul>
+                <li><strong>Manufacturer Code:</strong> {{ manufacturer.code }}</li>
+                {% if manufacturer.name %}
+                <li><strong>Manufacturer Name:</strong> {{ manufacturer.name }}</li>
+                {% endif %}
+                <li><strong>Country:</strong> {{ country.name }}{% if country.full_name %} ({{ country.full_name }}){% endif %}</li>
+            </ul>
+            
+            {% if manufacturer_notes.has_notes %}
+            <div class="mt-3">
+                {% if manufacturer_notes.public_notes %}
+                <div>
+                    <strong>Notes:</strong> {{ manufacturer_notes.public_notes }}
+                </div>
+                {% endif %}
+                
+                {% if manufacturer_notes.has_confidential %}
+                <div class="mt-2">
+                    <strong>Confidential Notes:</strong> {{ manufacturer_notes.confidential_notes }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if has_headstamps or has_headstamps_as_primary or has_boxes %}
+        <div class="alert alert-danger dependencies-alert">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Cannot Delete:</strong> This manufacturer has dependencies that must be removed first.
+            
+            <ul class="mt-2 mb-0">
+                {% if has_headstamps %}
+                <li>This manufacturer has headstamps associated with it.</li>
+                {% endif %}
+                
+                {% if has_headstamps_as_primary %}
+                <li>This manufacturer is set as the primary manufacturer for some headstamps.</li>
+                {% endif %}
+                
+                {% if has_boxes %}
+                <li>This manufacturer has boxes directly associated with it.</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <strong>Warning:</strong> This action cannot be undone. Deleting this manufacturer will permanently remove it from the database.
+        </div>
+        {% endif %}
+
+        <div class="action-buttons text-center">
+            {% if can_delete %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-trash me-2"></i> Delete Manufacturer
+                </button>
+                <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i> Cancel
+                </a>
+            </form>
+            {% else %}
+            <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i> Back to Manufacturer Details
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

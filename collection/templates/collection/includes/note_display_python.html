@@ -1,0 +1,24 @@
+{% comment %}
+This template expects the following variables:
+- has_notes: Boolean indicating if there are any notes
+- public_notes: The public portion of the notes
+- confidential_notes: The confidential portion of the notes
+- has_confidential: Boolean indicating if there are confidential notes
+- label: (Optional) Custom label for the notes section, defaults to "Notes"
+{% endcomment %}
+
+{% if has_notes %}
+<div class="note-section">
+    {% if public_notes %}
+    <div class="public-notes">
+        <strong>{{ label|default:"Notes" }}:</strong> {{ public_notes }}
+    </div>
+    {% endif %}
+    
+    {% if has_confidential %}
+    <div class="confidential-notes">
+        <strong>Confidential {{ label|default:"Notes" }}:</strong> {{ confidential_notes }}
+    </div>
+    {% endif %}
+</div>
+{% endif %}

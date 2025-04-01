@@ -1,0 +1,301 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ caliber.name }} - {{ box.bid }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Box header styling */
+    .box-header {
+        background-color: var(--theme-super-light);
+        border-left: 3px solid var(--theme-color);
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    /* Box image specific styles */
+    .box-image-container {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    .box-image {
+        max-width: 100%;
+        object-fit: contain;
+    }
+    .box-data {
+        line-height: 1.2;
+    }
+    .data-label {
+        font-weight: 500;
+        color: #495057;
+    }
+    .data-value {
+        margin-bottom: 0.5rem;
+    }
+    .badge-cc {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+    .badge-cc-collection {
+        background-color: #28a745;
+    }
+    /* Note styling */
+    .note-section {
+        margin-bottom: 1rem;
+    }
+    .public-notes {
+        margin-bottom: 0.5rem;
+    }
+    .confidential-notes {
+        color: #6c757d;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-left: 3px solid #6c757d;
+        margin-top: 0.5rem;
+    }
+    /* Parent image styling */
+    .parent-image-container {
+        height: 110px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    .parent-image {
+        max-height: 110px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            {% if country %}
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            {% endif %}
+            {% if manufacturer %}
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            {% endif %}
+            {% if headstamp %}
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            {% endif %}
+            {% if load %}
+            <li class="breadcrumb-item"><a href="{% url 'load_detail' caliber.code load.id %}">{{ load.cart_id }}</a></li>
+            {% endif %}
+            {% if date %}
+            <li class="breadcrumb-item"><a href="{% url 'date_detail' caliber.code date.id %}">{{ date.cart_id }}</a></li>
+            {% endif %}
+            {% if variation %}
+            <li class="breadcrumb-item"><a href="{% url 'variation_detail' caliber.code variation.id %}">{{ variation.cart_id }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{{ box.bid }}</li>
+        </ol>
+    </nav>
+
+    <!-- Box Details -->
+    <div class="box-header">
+        <div class="row">
+            <!-- Left column: Box Image -->
+            <div class="col-md-4">
+                <div class="box-image-container">
+                    {% if box.image %}
+                    <img src="{{ box.image.url }}" alt="{{ box.bid }}" class="box-image">
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-camera" style="font-size: 3rem;"></i>
+                        <p>No box image available</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Parent image if available -->
+                {% if parent_type == 'headstamp' and headstamp.image %}
+                <div class="parent-image-container">
+                    <img src="{{ headstamp.image.url }}" alt="{{ headstamp.code }}" class="parent-image">
+                </div>
+                {% elif parent_type == 'load' and headstamp.image %}
+                <div class="parent-image-container">
+                    <img src="{{ headstamp.image.url }}" alt="{{ load.cart_id }}" class="parent-image">
+                </div>
+                {% elif parent_type == 'date' and headstamp.image %}
+                <div class="parent-image-container">
+                    <img src="{{ headstamp.image.url }}" alt="{{ date.cart_id }}" class="parent-image">
+                </div>
+                {% elif parent_type == 'variation' and headstamp.image %}
+                <div class="parent-image-container">
+                    <img src="{{ headstamp.image.url }}" alt="{{ variation.cart_id }}" class="parent-image">
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Middle column: Box Details -->
+            <div class="col-md-5">
+                <h3><strong>{{ box.bid }}</strong>{% if box.description %} - {{ box.description|truncatechars:20 }}{% endif %}</h3>
+                
+                <div class="box-data mt-3">
+                    <div class="row mb-2">
+
+                        {% if parent_type == 'headstamp' or parent_type == 'load' or parent_type == 'date' or parent_type == 'variation' %}
+                        <div class="col-md-4 data-label">Headstamp:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">
+                                {{ headstamp.code }}{% if headstamp.name %} - {{ headstamp.name|truncatechars:30 }}{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-4 data-label">Manufacturer:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">
+                                {{ manufacturer.code }}{% if manufacturer.name %} - {{ manufacturer.name|truncatechars:30 }}{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-4 data-label">Country:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'country_detail' caliber.code country.id %}">
+                                {{ country.name }}
+                            </a>
+                        </div>
+                        {% elif parent_type == 'manufacturer' %}
+                        <div class="col-md-4 data-label">Manufacturer:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">
+                                {{ manufacturer.code }}{% if manufacturer.name %} - {{ manufacturer.name|truncatechars:30 }}{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-4 data-label">Country:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'country_detail' caliber.code country.id %}">
+                                {{ country.name }}
+                            </a>
+                        </div>
+                        {% elif parent_type == 'country' %}
+                        <div class="col-md-4 data-label">Country:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'country_detail' caliber.code country.id %}">
+                                {{ country.name }}
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if box.description %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Description:</div>
+                        <div class="col-md-8 data-value">
+                            {{ box.description }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Type:</div>
+                        <div class="col-md-8 data-value">
+                            {{ box.get_art_type_display }}
+                            {% if box.art_type == 'other' and box.art_type_other %}
+                            ({{ box.art_type_other }})
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Location:</div>
+                        <div class="col-md-8 data-value">
+                            {{ box.location|default:"Not specified" }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Credibility:</div>
+                        <div class="col-md-8 data-value">
+                            {% if box.cc == 1 %}
+                            <span class="badge-cc badge-cc-collection">In Collection</span>
+                            {% else %}
+                            {{ box.get_cc_display }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if box.acquisition_note %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Acquisition:</div>
+                        <div class="col-md-8 data-value">
+                            {{ box.acquisition_note }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if box.price %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Price/Value:</div>
+                        <div class="col-md-8 data-value">
+                            ${{ box.price }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% include 'collection/includes/note_display_python.html' with has_notes=box.note_has_notes public_notes=box.note_public_notes confidential_notes=box.note_confidential_notes has_confidential=box.note_has_confidential label="Notes" %}
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'box_update' caliber.code box.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'box_delete' caliber.code box.id %}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right column: Sources -->
+            <div class="col-md-3">
+                <!-- Sources Section -->
+                {% if box_sources %}
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Sources</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for bs_source in box_sources %}
+                            <li class="list-group-item">
+                                <small><strong>{{ bs_source.source.name }}</strong>, </small>
+                                {% if bs_source.date_sourced %}
+                                <small>{{ bs_source.date_sourced|date:"Y" }} - </small>
+                                {% endif %}
+                                {% if bs_source.note %}
+                                <small class="text-muted">{{ bs_source.note|truncatechars:50 }}</small>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

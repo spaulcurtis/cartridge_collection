@@ -173,7 +173,7 @@ def process_sources(record_obj, sources_info, dry_run=True):
                 record_obj.add_source(
                     source=source,
                     date=source_info['date'],
-                    note=f"credibility is {source_info['cc']}; note: {source_info.get('note', '')}"
+                    note=f"cc: {source_info['cc']}; note: {source_info.get('note', '')}"
                 )
                 source_links_created += 1
                 source_messages.append(f"Linked source: {source_info['name']} ({source_info['date']})")

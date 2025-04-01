@@ -1,0 +1,31 @@
+MONDAY/TUESDAY
+Finish updating Admin display thinking about caliber. DONE
+Make sure multiple caliber and non-unique bid works for get_parent_display(). DONE
+Update the models for country description and legacy id. DONE
+Implement artifact search (within this caliber) DONE
+Implement headstamp search (within this caliber) DONE
+
+WEDNESDAY/THURSDAY
+Photo import, by hook or by crook
+
+FRIDAY
+Get Poppy's computer and migrate him to the new program.
+Import database
+Import images
+Change the model save code for non-unique cart_id/bid.  Add unique constraint in clean() and save()
+Fix/Update countries, add descriptions and short_names and long_names
+Test with new monitor
+
+AFTER POPPY DROP
+Decide on how to add new sources and manage sourced.  Decide on Caliber UX
+  - Need a whole Source view/template/form stuff to:
+    - Full Source CRUD with Source list (with number of references per record type),
+      Source detail, Source Form, etc.  Cannot be deleted unless no references
+    - Source Detail includes all references in each caliber.
+Decide if you get to Source Create from other create/edit models.
+
+Advanced search
+
+Image View/Editor and productized import
+
+

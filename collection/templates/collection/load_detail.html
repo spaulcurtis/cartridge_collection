@@ -1,0 +1,693 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ caliber.name }} - {{ load.cart_id }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Existing styles from other templates */
+    .load-header {
+        background-color: var(--theme-super-light);
+        border-left: 3px solid var(--theme-color);
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .browse-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .count-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .browse-count-item {
+        background-color: rgba(58, 124, 165, 0.1);
+        color: var(--theme-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        margin-left: 0.3rem;
+        white-space: nowrap;
+    }
+    .browse-count-image {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+
+    /* Make the first two columns left-justified in all tables */
+    .table th:nth-child(1),
+    .table th:nth-child(2),
+    .table td:nth-child(1),
+    .table td:nth-child(2) {
+        text-align: left;
+    }
+
+    /* Keep count/stat columns centered */
+    .stat-cell {
+        text-align: center;
+    }
+
+    /* Make all columns in the box table left-justified */
+    .box-table th,
+    .box-table td {
+        text-align: left;
+    }
+    /* Load page heastamp specific styles */
+    .load-hs-image-container {
+        height: 130px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .load-hs-image {
+        max-height: 130px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+    /* Load specific styles */
+    .load-image-container {
+        height: 270px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .load-image {
+        max-height: 270px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+    .load-data {
+        line-height: 0.8;
+    }
+    .data-label {
+        font-weight: 500;
+        color: #495057;
+    }
+    .data-value {
+        margin-bottom: 0.5rem;
+    }
+    .date-list, .variation-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    .date-item, .variation-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .date-item:last-child, .variation-item:last-child {
+        border-bottom: none;
+    }
+    .date-id, .variation-id {
+        font-weight: 500;
+        display: block;
+    }
+    .date-info, .variation-desc {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .badge-cc {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+    .badge-cc-collection {
+        background-color: #28a745;
+    }
+    .table-responsive {
+        margin-bottom: 2rem;
+    }
+    /* Sticky header styles */
+    .table-responsive {
+        max-height: 70vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa !important; /* Light gray neutral color */
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    }
+    .card-header-sticky {
+        position: sticky;
+        top: 0;
+        background-color: white !important;
+        z-index: 20;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+    /* Note styling */
+    .note-section {
+        margin-bottom: 1rem;
+    }
+    .public-notes {
+        margin-bottom: 0.5rem;
+    }
+    .confidential-notes {
+        color: #6c757d;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-left: 3px solid #6c757d;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ load.cart_id }}</li>
+        </ol>
+    </nav>
+
+    <!-- Load Details -->
+    <div class="load-header">
+        <div class="row">
+            <!-- Left column: Load/Headstamp Image -->
+            <div class="col-md-2">
+                <div class="load-hs-image-container mb-3">
+                    {% if headstamp.image %}
+                        <img src="{{ headstamp.image.url }}" alt="{{ headstamp.code }}" class="load-hs-image">
+                    {% endif %}
+                </div>
+                
+                <!-- Load image (shown if available) -->
+                {% if load.image %}
+                <div class="load-image-container">
+                    <img src="{{ load.image.url }}" alt="{{ load.cart_id }}" class="load-image">
+                </div>
+                {% endif %}
+        
+{% comment %} 
+
+                    {% if load.image %}
+                        <img src="{{ load.image.url }}" alt="Load {{ load.cart_id }}" class="load-image">
+                    {% elif headstamp.image %}
+                        <img src="{{ headstamp.image.url }}" alt="Headstamp {{ headstamp.code }}" class="load-image">
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="bi bi-camera" style="font-size: 3rem;"></i>
+                            <p>No image available</p>
+                        </div>
+                    {% endif %}
+                </div> {% endcomment %}
+            </div>
+            
+            <!-- Middle column: Load Details -->
+            <div class="col-md-5">
+                <h2>{{ load.cart_id }}{% if load.description %} - {{ load.description|truncatechars:30 }}{% endif %}</h2>
+                
+                <div class="load-data mt-3">
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Headstamp:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">
+                                {{ headstamp.code }}{% if headstamp.name %} - {{ headstamp.name|truncatechars:30 }}{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Manufacturer:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">
+                                {{ manufacturer.code }}{% if manufacturer.name %} - {{ manufacturer.name|truncatechars:30 }}{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Country:</div>
+                        <div class="col-md-8 data-value">
+                            <a href="{% url 'country_detail' caliber.code country.id %}">
+                                {{ country.name }}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Load Type:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.load_type.display_name }}
+                        </div>
+                    </div>
+                    
+                    {% if load.bullet %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Bullet Type:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.bullet.display_name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if load.case_type %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Case Type:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.case_type.display_name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if load.primer %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Primer Type:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.primer.display_name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if load.pa_color %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">PA Color:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.pa_color.display_name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Is Magnetic:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.is_magnetic|yesno:"Yes,No" }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Credibility:</div>
+                        <div class="col-md-8 data-value">
+                            {% if load.cc == 1 %}
+                            <span class="badge-cc badge-cc-collection">In Collection</span>
+                            {% else %}
+                            {{ load.get_cc_display }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if load.acquisition_note %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Acquisition:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.acquisition_note }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if load.price %}
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Price/Value:</div>
+                        <div class="col-md-8 data-value">
+                            ${{ load.price }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% include 'collection/includes/note_display_python.html' with has_notes=load.note_has_notes public_notes=load.note_public_notes confidential_notes=load.note_confidential_notes has_confidential=load.note_has_confidential label="Notes" %}
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'load_update' caliber.code load.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'load_delete' caliber.code load.id %}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right column: Summary Lists -->
+            <div class="col-md-5">
+                <!-- Dates Summary List -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ dates|length }} Date{{ dates|length|pluralize }} for this Load</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if dates %}
+                        <div class="table-responsive" style="max-height: 160px;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="sticky-header">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Year</th>
+                                        <th>Lot/Month</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for date in dates %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'date_detail' caliber.code date.id %}" class="text-decoration-none">
+                                                {{ date.cart_id }}
+                                            </a>
+                                        </td>
+                                        <td>{{ date.year|default:"-" }}</td>
+                                        <td>{{ date.lot_month|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="p-3 text-center text-muted">
+                            No dates available for this load.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Variations Summary List -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ load_variations|length }} Variation{{ load_variations|length|pluralize }} for this Load</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if load_variations %}
+                        <div class="table-responsive" style="max-height: 160px;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="sticky-header">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for variation in load_variations %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'variation_detail' caliber.code variation.id %}" class="text-decoration-none">
+                                                {{ variation.cart_id }}
+                                            </a>
+                                        </td>
+                                        <td>{{ variation.description|truncatechars:30|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="p-3 text-center text-muted">
+                            No variations available for this load.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Sources Section -->
+                {% if load_sources %}
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Sources</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for ls_source in load_sources %}
+                            <li class="list-group-item">
+                                <small><strong>{{ ls_source.source.name }}</strong>, </small>
+                                {% if ls_source.date_sourced %}
+                                <small>{{ ls_source.date_sourced|date:"Y" }} - </small>
+                                {% endif %}
+                                {% if ls_source.note %}
+                                <small class="text-muted">{{ ls_source.note|truncatechars:50 }}</small>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Dates List -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Dates</h3>
+            <a href="{% url 'date_create' caliber.code load.id %}" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-circle"></i> Add Date
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th style="width: 15%">Year</th>
+                            <th style="width: 15%">Lot/Month</th>
+                            <th style="width: 30%">Description</th>
+                            <th style="width: 10%">Image</th>
+                            <th class="text-center" style="width: 10%" data-bs-toggle="tooltip" title="Variations">
+                                <small>Variations</small><br>
+                                <i class="bi bi-arrow-repeat"></i>
+                            </th>
+                            <th class="text-center" style="width: 10%" data-bs-toggle="tooltip" title="Boxes">
+                                <small>Boxes</small><br>
+                                <i class="bi bi-box-seam"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for date in dates %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'date_detail' caliber.code date.id %}" class="text-decoration-none">
+                                    {{ date.cart_id }}
+                                </a>
+                            </td>
+                            <td>{{ date.year|default:"-" }}</td>
+                            <td>{{ date.lot_month|default:"-" }}</td>
+                            <td>
+                                {% if date.description %}
+                                <a href="{% url 'date_detail' caliber.code date.id %}" class="text-decoration-none">
+                                    {{ date.description|truncatechars:50 }}
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if date.image %}
+                                <a href="{{ date.image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-camera"></i> View
+                                </a>
+                                {% else %}
+                                <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Variations -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ date.var_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ date.var_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Boxes -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ date.box_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ date.box_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">No dates available for this load.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variations List -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Variations</h3>
+            <a href="{% url 'variation_create_for_load' caliber.code load.id %}" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-circle"></i> Add Variation
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th style="width: 50%">Description</th>
+                            <th style="width: 15%">Credibility</th>
+                            <th style="width: 10%">Image</th>
+                            <th class="text-center" style="width: 15%" data-bs-toggle="tooltip" title="Boxes">
+                                <small>Boxes</small><br>
+                                <i class="bi bi-box-seam"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variation in load_variations %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'variation_detail' caliber.code variation.id %}" class="text-decoration-none">
+                                    {{ variation.cart_id }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if variation.description %}
+                                <a href="{% url 'variation_detail' caliber.code variation.id %}" class="text-decoration-none">
+                                    {{ variation.description }}
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if variation.cc == 1 %}
+                                <span class="badge-cc badge-cc-collection">In Collection</span>
+                                {% else %}
+                                {{ variation.get_cc_display }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if variation.image %}
+                                <a href="{{ variation.image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-camera"></i> View
+                                </a>
+                                {% else %}
+                                <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Boxes -->
+                            <td class="stat-cell">
+                                <div class="browse-count">
+                                    <div class="count-wrapper">
+                                        <span class="browse-count-item">{{ variation.box_count }}</span>
+                                        <span class="browse-count-image"><i class="bi bi-camera"></i> {{ variation.box_image_count }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">No variations available for this load.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Direct Boxes List -->
+    <div class="card shadow-sm">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Boxes</h3>
+            <a href="{% url 'box_create' caliber_code=caliber.code model_name='load' object_id=load.id %}" class="btn btn-sm btn-info">
+                <i class="bi bi-plus-circle"></i> Add Box
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover box-table mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 10%">Box ID</th>
+                            <th style="width: 40%">Description</th>
+                            <th style="width: 20%">Location</th>
+                            <th style="width: 15%">Credibility</th>
+                            <th style="width: 15%">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for box in direct_boxes %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'box_detail' caliber_code=caliber.code box_id=box.id %}">
+                                    {{ box.bid }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'box_detail' caliber_code=caliber.code box_id=box.id %}" class="text-decoration-none">
+                                    {% if box.description %}
+                                        {{ box.description|truncatechars:40 }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td>{{ box.location|default:"-" }}</td>
+                            <td>
+                                {% if box.cc == 1 %}
+                                <span class="badge-cc badge-cc-collection">In Collection</span>
+                                {% else %}
+                                {{ box.get_cc_display }}
+                                {% endif %}
+                            </td>
+                            <td>{{ box.get_art_type_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">No boxes directly assigned to this load.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+{% endblock %}
+
+{% endblock %}
