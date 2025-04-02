@@ -73,3 +73,21 @@ class HeadstampSourceForm(forms.ModelForm):
         
         # Order sources by name
         self.fields['source'].queryset = Source.objects.all().order_by('name')
+
+
+class HeadstampMoveForm(forms.Form):
+    new_manufacturer = forms.ModelChoiceField(
+        queryset=Manufacturer.objects.all(),
+        label="New Manufacturer",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, caliber=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if caliber:
+            self.fields['new_manufacturer'].queryset = Manufacturer.objects.filter(
+                country__caliber=caliber
+            ).order_by('country__name', 'code')
+            
+    def label_from_instance(self, obj):
+        return f"{obj.country.name} - {obj.code}{' - ' + obj.name[:30] + '...' if obj.name else ''}"

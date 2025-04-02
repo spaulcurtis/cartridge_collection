@@ -13,10 +13,6 @@ notes are squished up against the Notes: line above (at least in dates)
 
 Add logging for debug.
 
-#### Recently viewed
-
-Update Dashboard recently to be latest edits.
-Maybe compress Dashboard.
 
 #### Robustly handling unique constrain violations
 
@@ -27,9 +23,6 @@ Maybe compress Dashboard.
 You can add headstampsource, but not a new source.
 Where do we do this?  It's own screen, or when editing any other record?
 
-#### Country Description
-
-Add country description that can be used to clarify what records are under this country from the historical perspective of the country.
 
 #### Tests
 

@@ -1,0 +1,188 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* This will hide all parent select containers initially */
+    #country-select-container, 
+    #manufacturer-select-container, 
+    #headstamp-container,
+    #load-cart-id-container, 
+    #date-cart-id-container,
+    #variation-cart-id-container {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            {% if country %}
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            {% endif %}
+            {% if manufacturer %}
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            {% endif %}
+            {% if headstamp %}
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            {% endif %}
+            {% if load %}
+            <li class="breadcrumb-item"><a href="{% url 'load_detail' caliber.code load.id %}">{{ load.cart_id }}</a></li>
+            {% endif %}
+            {% if date %}
+            <li class="breadcrumb-item"><a href="{% url 'date_detail' caliber.code date.id %}">{{ date.cart_id }}</a></li>
+            {% endif %}
+            {% if variation %}
+            <li class="breadcrumb-item"><a href="{% url 'variation_detail' caliber.code variation.id %}">{{ variation.cart_id }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item"><a href="{% url 'box_detail' caliber.code box.id %}">{{ box.bid }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Move</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h2 class="h5 mb-0">{{ title }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="alert alert-info">
+                Moving box <strong>{{ box.bid }}</strong> will reassign it to a different parent.
+            </p>
+            <p>
+                Current parent: <strong>{{ current_parent_type|title }}: {{ current_parent_display }}</strong>
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    {{ form.parent_type.label_tag }}
+                    {{ form.parent_type }}
+                    {% if form.parent_type.errors %}
+                    <div class="invalid-feedback d-block">{{ form.parent_type.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Parent selection containers -->
+                <div id="country-select-container" class="mb-3">
+                    {{ form.country.label_tag }}
+                    {{ form.country }}
+                    {% if form.country.errors %}
+                    <div class="invalid-feedback d-block">{{ form.country.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div id="manufacturer-select-container" class="mb-3">
+                    {{ form.manufacturer.label_tag }}
+                    {{ form.manufacturer }}
+                    {% if form.manufacturer.errors %}
+                    <div class="invalid-feedback d-block">{{ form.manufacturer.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div id="headstamp-container" class="mb-3">
+                    <div class="mb-3">
+                        {{ form.headstamp_manufacturer.label_tag }}
+                        {{ form.headstamp_manufacturer }}
+                        {% if form.headstamp_manufacturer.errors %}
+                        <div class="invalid-feedback d-block">{{ form.headstamp_manufacturer.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.headstamp_code.label_tag }}
+                        {{ form.headstamp_code }}
+                        {% if form.headstamp_code.errors %}
+                        <div class="invalid-feedback d-block">{{ form.headstamp_code.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div id="load-cart-id-container" class="mb-3">
+                    {{ form.load_cart_id.label_tag }}
+                    {{ form.load_cart_id }}
+                    {% if form.load_cart_id.errors %}
+                    <div class="invalid-feedback d-block">{{ form.load_cart_id.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div id="date-cart-id-container" class="mb-3">
+                    {{ form.date_cart_id.label_tag }}
+                    {{ form.date_cart_id }}
+                    {% if form.date_cart_id.errors %}
+                    <div class="invalid-feedback d-block">{{ form.date_cart_id.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div id="variation-cart-id-container" class="mb-3">
+                    {{ form.variation_cart_id.label_tag }}
+                    {{ form.variation_cart_id }}
+                    {% if form.variation_cart_id.errors %}
+                    <div class="invalid-feedback d-block">{{ form.variation_cart_id.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                    <a href="{% url 'box_detail' caliber.code box.id %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the parent type select and parent select containers
+        const parentTypeSelect = document.getElementById('parent-type-select');
+        const countryContainer = document.getElementById('country-select-container');
+        const manufacturerContainer = document.getElementById('manufacturer-select-container');
+        const headstampContainer = document.getElementById('headstamp-container');
+        const loadContainer = document.getElementById('load-cart-id-container');
+        const dateContainer = document.getElementById('date-cart-id-container');
+        const variationContainer = document.getElementById('variation-cart-id-container');
+        
+        // Function to show the appropriate parent selection container
+        function updateParentSelects() {
+            const selectedType = parentTypeSelect.value;
+            
+            // Hide all containers
+            countryContainer.style.display = 'none';
+            manufacturerContainer.style.display = 'none';
+            headstampContainer.style.display = 'none';
+            loadContainer.style.display = 'none';
+            dateContainer.style.display = 'none';
+            variationContainer.style.display = 'none';
+            
+            // Show the selected container
+            if (selectedType === 'country') {
+                countryContainer.style.display = 'block';
+            } else if (selectedType === 'manufacturer') {
+                manufacturerContainer.style.display = 'block';
+            } else if (selectedType === 'headstamp') {
+                headstampContainer.style.display = 'block';
+            } else if (selectedType === 'load') {
+                loadContainer.style.display = 'block';
+            } else if (selectedType === 'date') {
+                dateContainer.style.display = 'block';
+            } else if (selectedType === 'variation') {
+                variationContainer.style.display = 'block';
+            }
+        }
+        
+        // Initial update
+        updateParentSelects();
+        
+        // Update when parent type changes
+        parentTypeSelect.addEventListener('change', updateParentSelects);
+    });
+</script>
+{% endblock %}

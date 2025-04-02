@@ -3,8 +3,9 @@ from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Ca
 from django.contrib.contenttypes.models import ContentType
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, BoxSource, Source
-from ..forms.box_forms import BoxForm, BoxSourceForm
+from ..forms.box_forms import BoxForm, BoxSourceForm, BoxMoveForm
 from ..utils.note_utils import process_notes
 
 def box_detail(request, caliber_code, box_id):
@@ -436,3 +437,154 @@ def box_remove_source(request, caliber_code, box_id, source_id):
         messages.success(request, f"Source '{source_name}' was removed from box.")
     
     return redirect('box_update', caliber_code=caliber_code, box_id=box.id)
+
+
+def box_move(request, caliber_code, box_id):
+    """View for moving a box to a different parent"""
+    caliber = get_object_or_404(Caliber, code=caliber_code)
+    all_calibers = Caliber.objects.all().order_by('order', 'name')
+    box = get_object_or_404(Box, id=box_id)
+    
+    # Verify this belongs to the right caliber
+    parent_caliber = box.parent_caliber()
+    if parent_caliber != caliber:
+        return redirect('dashboard', caliber_code=caliber.code)
+    
+    # Get current parent entity
+    current_parent_obj = box.parent
+    current_parent_type = box.content_type.model_class().__name__.lower()
+    
+    # Prepare navigation hierarchy based on current parent type
+    if current_parent_type == 'country':
+        country = current_parent_obj
+        manufacturer = None
+        headstamp = None
+        load = None
+        date = None
+        variation = None
+    elif current_parent_type == 'manufacturer':
+        manufacturer = current_parent_obj
+        country = manufacturer.country
+        headstamp = None
+        load = None
+        date = None
+        variation = None
+    elif current_parent_type == 'headstamp':
+        headstamp = current_parent_obj
+        manufacturer = headstamp.manufacturer
+        country = manufacturer.country
+        load = None
+        date = None
+        variation = None
+    elif current_parent_type == 'load':
+        load = current_parent_obj
+        headstamp = load.headstamp
+        manufacturer = headstamp.manufacturer
+        country = manufacturer.country
+        date = None
+        variation = None
+    elif current_parent_type == 'date':
+        date = current_parent_obj
+        load = date.load
+        headstamp = load.headstamp
+        manufacturer = headstamp.manufacturer
+        country = manufacturer.country
+        variation = None
+    elif current_parent_type == 'variation':
+        variation = current_parent_obj
+        if variation.load:
+            load = variation.load
+            date = None
+        else:
+            date = variation.date
+            load = date.load
+        headstamp = load.headstamp
+        manufacturer = headstamp.manufacturer
+        country = manufacturer.country
+    else:
+        # This should not happen, but just in case
+        messages.error(request, "Invalid parent type for box.")
+        return redirect('dashboard', caliber_code=caliber.code)
+    
+    # Get model map for content type lookup
+    model_map = {
+        'country': Country,
+        'manufacturer': Manufacturer,
+        'headstamp': Headstamp,
+        'load': Load,
+        'date': Date,
+        'variation': Variation,
+    }
+    
+    if request.method == 'POST':
+        form = BoxMoveForm(request.POST, caliber=caliber)
+        
+        if form.is_valid():
+            new_parent_type = form.cleaned_data['parent_type']
+            
+            # Get the new parent object based on type
+            if new_parent_type == 'country':
+                new_parent = form.cleaned_data['country']
+            elif new_parent_type == 'manufacturer':
+                new_parent = form.cleaned_data['manufacturer']
+            elif new_parent_type == 'headstamp':
+                new_parent = form.cleaned_data['headstamp']
+            elif new_parent_type == 'load':
+                new_parent = form.cleaned_data['load']
+            elif new_parent_type == 'date':
+                new_parent = form.cleaned_data['date']
+            elif new_parent_type == 'variation':
+                new_parent = form.cleaned_data['variation']
+            
+            # Check if the parent is the same
+            if (new_parent_type == current_parent_type and 
+                new_parent.id == current_parent_obj.id):
+                messages.info(request, f"Box '{box.bid}' is already attached to this {new_parent_type}.")
+                return redirect('box_detail', caliber_code=caliber_code, box_id=box.id)
+            
+            # Update the box's parent
+            new_content_type = ContentType.objects.get_for_model(model_map[new_parent_type])
+            
+            # Get display info for the message
+            current_parent_display = box.get_parent_display()
+            
+            box.content_type = new_content_type
+            box.object_id = new_parent.id
+            box.save()
+            
+            # Get the new parent display
+            new_parent_display = box.get_parent_display()
+            
+            messages.success(
+                request, 
+                f"Box '{box.bid}' was moved from {current_parent_type} '{current_parent_display}' "
+                f"to {new_parent_type} '{new_parent_display}'."
+            )
+            return redirect('box_detail', caliber_code=caliber_code, box_id=box.id)
+    else:
+        # Create the form with initial values
+        form = BoxMoveForm(
+            initial={'parent_type': current_parent_type},
+            caliber=caliber
+        )
+    
+    # Format current parent display for the template
+    current_parent_display = box.get_parent_display()
+    
+    return render(request, 'collection/box_move_form.html', {
+        'caliber': caliber,
+        'all_calibers': all_calibers,
+        'form': form,
+        'box': box,
+        'country': country,
+        'manufacturer': manufacturer,
+        'headstamp': headstamp,
+        'load': load,
+        'date': date,
+        'variation': variation,
+        'current_parent_type': current_parent_type,
+        'current_parent_obj': current_parent_obj,
+        'current_parent_display': current_parent_display,
+        'title': f'Move Box: {box.bid}',
+        'submit_text': 'Move Box',
+    })

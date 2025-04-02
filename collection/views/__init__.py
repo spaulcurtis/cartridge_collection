@@ -7,15 +7,18 @@ from .country_views import (
 )
 
 from .manufacturer_views import (
-    manufacturer_detail, manufacturer_create, manufacturer_delete, manufacturer_update
+    manufacturer_detail, manufacturer_create, manufacturer_delete, 
+    manufacturer_update, manufacturer_move
 )
 
 from .headstamp_views import (
-    headstamp_detail, headstamp_create, headstamp_delete, headstamp_update, headstamp_add_source, headstamp_remove_source
+    headstamp_detail, headstamp_create, headstamp_delete, headstamp_update, 
+    headstamp_add_source, headstamp_remove_source, headstamp_move
 )
 
 from .load_views import (
-    load_detail, load_create, load_delete, load_update, load_add_source, load_remove_source
+    load_detail, load_create, load_delete, load_update, load_add_source, 
+    load_remove_source, load_move
 )
 
 from .date_views import (
@@ -23,11 +26,13 @@ from .date_views import (
 )
 
 from .variation_views import (
-    variation_detail, variation_create_for_load, variation_create_for_date, variation_delete, variation_update, variation_add_source, variation_remove_source
+    variation_detail, variation_create_for_load, variation_create_for_date, 
+    variation_delete, variation_update, variation_add_source, variation_remove_source
 )
 
 from .box_views import (
-    box_detail, box_create, box_delete, box_update, box_add_source, box_remove_source
+    box_detail, box_create, box_delete, box_update, box_add_source, box_remove_source,
+    box_move
 )
 
 

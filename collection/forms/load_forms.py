@@ -1,5 +1,5 @@
 from django import forms
-from ..models import Load, Source, LoadSource
+from ..models import Load, Source, LoadSource, Headstamp
 
 class LoadForm(forms.ModelForm):
     """Form for creating and editing loads"""
@@ -78,3 +78,17 @@ class LoadSourceForm(forms.ModelForm):
         
         # Order sources by name
         self.fields['source'].queryset = Source.objects.all().order_by('name')
+
+class LoadMoveForm(forms.Form):
+    new_headstamp = forms.ModelChoiceField(
+        queryset=Headstamp.objects.all(),
+        label="New Headstamp",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, caliber=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if caliber:
+            self.fields['new_headstamp'].queryset = Headstamp.objects.filter(
+                manufacturer__country__caliber=caliber
+            ).order_by('manufacturer__country__name', 'manufacturer__code', 'code')

@@ -17,11 +17,12 @@ urlpatterns = [
     path('<str:caliber_code>/manufacturers/<int:manufacturer_id>/', views.manufacturer_detail, name='manufacturer_detail'),
     path('<str:caliber_code>/manufacturers/<int:manufacturer_id>/edit/', views.manufacturer_update, name='manufacturer_update'),
     path('<str:caliber_code>/manufacturers/<int:manufacturer_id>/delete/', views.manufacturer_delete, name='manufacturer_delete'),
-
+    path('<str:caliber_code>/manufacturers/<int:manufacturer_id>/move/', views.manufacturer_move, name='manufacturer_move'),
     path('<str:caliber_code>/headstamps/<int:headstamp_id>/', views.headstamp_detail, name='headstamp_detail'),
     path('<str:caliber_code>/headstamps/<int:headstamp_id>/edit/', views.headstamp_update, name='headstamp_update'),
     path('<str:caliber_code>/headstamps/<int:headstamp_id>/delete/', views.headstamp_delete, name='headstamp_delete'),
     path('<str:caliber_code>/manufacturers/<int:manufacturer_id>/headstamps/create/', views.headstamp_create, name='headstamp_create'),
+    path('<str:caliber_code>/headstamps/<int:headstamp_id>/move/', views.headstamp_move, name='headstamp_move'),
 
     # New headstamp source management URLs
     path('<str:caliber_code>/headstamps/<int:headstamp_id>/add-source/', views.headstamp_add_source, name='headstamp_add_source'),
@@ -34,6 +35,7 @@ urlpatterns = [
     path('<str:caliber_code>/loads/<int:load_id>/delete/', views.load_delete, name='load_delete'),
     path('<str:caliber_code>/loads/<int:load_id>/add-source/', views.load_add_source, name='load_add_source'),
     path('<str:caliber_code>/loads/<int:load_id>/remove-source/<int:source_id>/', views.load_remove_source, name='load_remove_source'),
+    path('<str:caliber_code>/loads/<int:load_id>/move/', views.load_move, name='load_move'),
 
     # Date URLs
     path('<str:caliber_code>/dates/<int:date_id>/', views.date_detail, name='date_detail'),
@@ -59,6 +61,7 @@ urlpatterns = [
     path('<str:caliber_code>/boxes/<int:box_id>/delete/', views.box_delete, name='box_delete'),
     path('<str:caliber_code>/boxes/<int:box_id>/sources/add/', views.box_add_source, name='box_add_source'),
     path('<str:caliber_code>/boxes/<int:box_id>/sources/<int:source_id>/remove/', views.box_remove_source, name='box_remove_source'),
+    path('<str:caliber_code>/boxes/<int:box_id>/move/', views.box_move, name='box_move'),
 
     # Temporary URLs:
     path('<str:caliber_code>/headstamps/', views.country_list, name='headstamp_list'),

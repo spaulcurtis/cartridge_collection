@@ -22,3 +22,16 @@ class ManufacturerForm(forms.ModelForm):
             'name': 'Optional. The complete name of the manufacturer.',
             'note': 'Optional. Additional information about this manufacturer. Use double braces &#123;&#123; &#125;&#125; around confidential notes.',
         }
+
+class ManufacturerMoveForm(forms.Form):
+    new_country = forms.ModelChoiceField(
+        queryset=Country.objects.all(),
+        label="New Country",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, caliber=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if caliber:
+            self.fields['new_country'].queryset = Country.objects.filter(caliber=caliber)
+            

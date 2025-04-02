@@ -5,7 +5,7 @@ from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Ca
 from django.contrib.contenttypes.models import ContentType
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box
-from ..forms.manufacturer_forms import ManufacturerForm
+from ..forms.manufacturer_forms import ManufacturerForm, ManufacturerMoveForm
 from ..utils.note_utils import process_notes
 
 
@@ -286,6 +286,23 @@ def manufacturer_create(request, caliber_code, country_id):
         if form.is_valid():
             manufacturer = form.save(commit=False)
             manufacturer.country = country
+            
+            # Check for uniqueness constraint violation
+            if Manufacturer.objects.filter(country=country, code=manufacturer.code).exists():
+                messages.error(
+                    request, 
+                    f"Cannot create manufacturer with code '{manufacturer.code}' because a manufacturer with "
+                    f"this code already exists in {country.name}."
+                )
+                return render(request, 'collection/manufacturer_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'country': country,
+                    'title': f'Add New Manufacturer to {country.name}',
+                    'submit_text': 'Create Manufacturer',
+                })
+            
             manufacturer.save()
             messages.success(request, f"Manufacturer '{manufacturer.code}' was created successfully.")
             return redirect('manufacturer_detail', caliber_code=caliber_code, manufacturer_id=manufacturer.id)
@@ -301,6 +318,7 @@ def manufacturer_create(request, caliber_code, country_id):
         'submit_text': 'Create Manufacturer',
     })
 
+
 def manufacturer_update(request, caliber_code, manufacturer_id):
     """View for updating a manufacturer"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -311,9 +329,31 @@ def manufacturer_update(request, caliber_code, manufacturer_id):
     if request.method == 'POST':
         form = ManufacturerForm(request.POST, instance=manufacturer)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Manufacturer '{manufacturer.code}' was updated successfully.")
-            return redirect('manufacturer_detail', caliber_code=caliber_code, manufacturer_id=manufacturer.id)
+            updated_manufacturer = form.save(commit=False)
+            
+            # Check for uniqueness constraint violation, but exclude the current manufacturer
+            if Manufacturer.objects.filter(
+                country=country, 
+                code=updated_manufacturer.code
+            ).exclude(id=manufacturer.id).exists():
+                messages.error(
+                    request, 
+                    f"Cannot update manufacturer with code '{updated_manufacturer.code}' because a manufacturer with "
+                    f"this code already exists in {country.name}."
+                )
+                return render(request, 'collection/manufacturer_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'manufacturer': manufacturer,
+                    'country': country,
+                    'title': f'Edit Manufacturer: {manufacturer.code}',
+                    'submit_text': 'Update Manufacturer',
+                })
+            
+            updated_manufacturer.save()
+            messages.success(request, f"Manufacturer '{updated_manufacturer.code}' was updated successfully.")
+            return redirect('manufacturer_detail', caliber_code=caliber_code, manufacturer_id=updated_manufacturer.id)
     else:
         form = ManufacturerForm(instance=manufacturer)
     
@@ -326,6 +366,7 @@ def manufacturer_update(request, caliber_code, manufacturer_id):
         'title': f'Edit Manufacturer: {manufacturer.code}',
         'submit_text': 'Update Manufacturer',
     })
+
 
 def manufacturer_delete(request, caliber_code, manufacturer_id):
     """View for deleting a manufacturer"""
@@ -374,4 +415,62 @@ def manufacturer_delete(request, caliber_code, manufacturer_id):
         'has_boxes': has_boxes,
         'can_delete': not (has_headstamps or has_headstamps_as_primary or has_boxes),
         'manufacturer_notes': processed_notes,
+    })
+
+def manufacturer_move(request, caliber_code, manufacturer_id):
+    """View for moving a manufacturer to a different country"""
+    caliber = get_object_or_404(Caliber, code=caliber_code)
+    all_calibers = Caliber.objects.all().order_by('order', 'name')
+    manufacturer = get_object_or_404(Manufacturer, id=manufacturer_id, country__caliber=caliber)
+    current_country = manufacturer.country
+    
+    if request.method == 'POST':
+        form = ManufacturerMoveForm(request.POST, caliber=caliber)
+        if form.is_valid():
+            new_country = form.cleaned_data['new_country']
+            
+            # Don't do anything if the country hasn't changed
+            if new_country == current_country:
+                messages.info(request, f"'{manufacturer.code}' is already in {current_country.name}.")
+                return redirect('manufacturer_detail', caliber_code=caliber_code, manufacturer_id=manufacturer.id)
+            
+            # Check for uniqueness constraint violation
+            if Manufacturer.objects.filter(country=new_country, code=manufacturer.code).exists():
+                # There's already a manufacturer with the same code in the target country
+                messages.error(
+                    request, 
+                    f"Cannot move '{manufacturer.code}' to {new_country.name} because a manufacturer with "
+                    f"this code already exists there."
+                )
+                return render(request, 'collection/manufacturer_move_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'manufacturer': manufacturer,
+                    'current_country': current_country,
+                    'title': f'Move Manufacturer: {manufacturer.code}',
+                    'submit_text': 'Move Manufacturer',
+                })
+            
+            # Update the manufacturer's country
+            old_country_name = manufacturer.country.name
+            manufacturer.country = new_country
+            manufacturer.save()
+            
+            messages.success(
+                request, 
+                f"Manufacturer '{manufacturer.code}' was moved from {old_country_name} to {new_country.name}."
+            )
+            return redirect('manufacturer_detail', caliber_code=caliber_code, manufacturer_id=manufacturer.id)
+    else:
+        form = ManufacturerMoveForm(caliber=caliber)
+    
+    return render(request, 'collection/manufacturer_move_form.html', {
+        'caliber': caliber,
+        'all_calibers': all_calibers,
+        'form': form,
+        'manufacturer': manufacturer,
+        'current_country': current_country,
+        'title': f'Move Manufacturer: {manufacturer.code}',
+        'submit_text': 'Move Manufacturer',
     })
