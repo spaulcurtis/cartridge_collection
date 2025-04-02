@@ -3,7 +3,7 @@ from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Ca
 from django.contrib.contenttypes.models import ContentType
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, LoadSource, Source
-from ..forms.load_forms import LoadForm, LoadSourceForm
+from ..forms.load_forms import LoadForm, LoadSourceForm, LoadMoveForm
 from ..utils.note_utils import process_notes
 
 def load_detail(request, caliber_code, load_id):
@@ -327,3 +327,59 @@ def load_remove_source(request, caliber_code, load_id, source_id):
         messages.success(request, f"Source '{source_name}' was removed from load.")
     
     return redirect('load_update', caliber_code=caliber_code, load_id=load.id)
+
+def load_move(request, caliber_code, load_id):
+    """View for moving a load to a different headstamp"""
+    caliber = get_object_or_404(Caliber, code=caliber_code)
+    all_calibers = Caliber.objects.all().order_by('order', 'name')
+    load = get_object_or_404(Load, id=load_id, headstamp__manufacturer__country__caliber=caliber)
+    current_headstamp = load.headstamp
+    manufacturer = current_headstamp.manufacturer
+    country = manufacturer.country
+    
+    if request.method == 'POST':
+        form = LoadMoveForm(request.POST, caliber=caliber)
+        if form.is_valid():
+            new_headstamp = form.cleaned_data['new_headstamp']
+            
+            # Don't do anything if the headstamp hasn't changed
+            if new_headstamp == current_headstamp:
+                messages.info(request, f"Load '{load.cart_id}' is already assigned to headstamp '{current_headstamp.code}'.")
+                return redirect('load_detail', caliber_code=caliber_code, load_id=load.id)
+            
+            # Update the load's headstamp
+            old_headstamp_code = current_headstamp.code
+            load.headstamp = new_headstamp
+            load.save()
+            
+            messages.success(
+                request, 
+                f"Load '{load.cart_id}' was moved from headstamp '{old_headstamp_code}' to '{new_headstamp.code}'."
+            )
+            return redirect('load_detail', caliber_code=caliber_code, load_id=load.id)
+    else:
+        form = LoadMoveForm(caliber=caliber)
+        
+        # Customize the headstamp display to show manufacturer, country, and headstamp code
+        from django.forms.models import ModelChoiceIterator
+        
+        class CustomModelChoiceIterator(ModelChoiceIterator):
+            def choice(self, obj):
+                manufacturer_info = f"{obj.manufacturer.country.name} - {obj.manufacturer.code}"
+                if obj.manufacturer.name:
+                    manufacturer_info += f" - {obj.manufacturer.name[:30]}"
+                return (obj.id, f"{manufacturer_info} | {obj.code}")
+        
+        form.fields['new_headstamp'].widget.choices = CustomModelChoiceIterator(form.fields['new_headstamp'])
+    
+    return render(request, 'collection/load_move_form.html', {
+        'caliber': caliber,
+        'all_calibers': all_calibers,
+        'form': form,
+        'load': load,
+        'current_headstamp': current_headstamp,
+        'manufacturer': manufacturer,
+        'country': country,
+        'title': f'Move Load: {load.cart_id}',
+        'submit_text': 'Move Load',
+    })

@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 from ..models import Box, Source, BoxSource, Country, Manufacturer, Headstamp, Load, Date, Variation
 
@@ -80,3 +81,160 @@ class BoxSourceForm(forms.ModelForm):
         
         # Order sources by name
         self.fields['source'].queryset = Source.objects.all().order_by('name')
+
+
+class BoxMoveForm(forms.Form):
+    parent_type = forms.ChoiceField(
+        choices=[
+            ('country', 'Country'),
+            ('manufacturer', 'Manufacturer'),
+            ('headstamp', 'Headstamp'),
+            ('load', 'Load'),
+            ('date', 'Date'),
+            ('variation', 'Variation'),
+        ],
+        label="New Parent Type",
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'parent-type-select'})
+    )
+    
+    # Country and Manufacturer use dropdowns
+    country = forms.ModelChoiceField(
+        queryset=Country.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    manufacturer = forms.ModelChoiceField(
+        queryset=Manufacturer.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    # For Headstamp, use manufacturer dropdown and text input for code
+    headstamp_manufacturer = forms.ModelChoiceField(
+        queryset=Manufacturer.objects.none(),
+        required=False,
+        label="Manufacturer",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    headstamp_code = forms.CharField(
+        max_length=100, 
+        required=False,
+        label="Headstamp Code",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    # For Load, Date, and Variation, use text input for cart_id
+    load_cart_id = forms.CharField(
+        max_length=20, 
+        required=False,
+        label="Load ID",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    date_cart_id = forms.CharField(
+        max_length=20, 
+        required=False,
+        label="Date ID",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    variation_cart_id = forms.CharField(
+        max_length=20, 
+        required=False,
+        label="Variation ID",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, caliber=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if caliber:
+            # Update querysets to filter by caliber
+            self.fields['country'].queryset = Country.objects.filter(
+                caliber=caliber
+            ).order_by('name')
+            
+            self.fields['manufacturer'].queryset = Manufacturer.objects.filter(
+                country__caliber=caliber
+            ).order_by('country__name', 'code')
+            
+            self.fields['headstamp_manufacturer'].queryset = Manufacturer.objects.filter(
+                country__caliber=caliber
+            ).order_by('country__name', 'code')
+            
+            # Customize the display for manufacturer fields
+            self.fields['country'].label_from_instance = lambda obj: f"{obj.name}"
+            
+            manufacturer_label = lambda obj: f"{obj.country.name} - {obj.code}{' - ' + obj.name[:30] if obj.name else ''}"
+            self.fields['manufacturer'].label_from_instance = manufacturer_label
+            self.fields['headstamp_manufacturer'].label_from_instance = manufacturer_label
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        parent_type = cleaned_data.get('parent_type')
+        
+        if parent_type == 'country':
+            if not cleaned_data.get('country'):
+                self.add_error('country', "Please select a country.")
+        
+        elif parent_type == 'manufacturer':
+            if not cleaned_data.get('manufacturer'):
+                self.add_error('manufacturer', "Please select a manufacturer.")
+        
+        elif parent_type == 'headstamp':
+            manufacturer = cleaned_data.get('headstamp_manufacturer')
+            code = cleaned_data.get('headstamp_code')
+            
+            if not manufacturer:
+                self.add_error('headstamp_manufacturer', "Please select a manufacturer.")
+            
+            if not code:
+                self.add_error('headstamp_code', "Please enter a headstamp code.")
+            
+            if manufacturer and code:
+                try:
+                    headstamp = Headstamp.objects.get(
+                        manufacturer=manufacturer,
+                        code=code
+                    )
+                    cleaned_data['headstamp'] = headstamp
+                except Headstamp.DoesNotExist:
+                    self.add_error('headstamp_code', 
+                        f"Headstamp with code '{code}' does not exist for manufacturer {manufacturer.code}.")
+        
+        elif parent_type == 'load':
+            load_cart_id = cleaned_data.get('load_cart_id')
+            if not load_cart_id:
+                self.add_error('load_cart_id', "Please enter a load ID.")
+            else:
+                try:
+                    load = Load.objects.get(cart_id=load_cart_id)
+                    cleaned_data['load'] = load
+                except Load.DoesNotExist:
+                    self.add_error('load_cart_id', f"Load with ID '{load_cart_id}' does not exist.")
+        
+        elif parent_type == 'date':
+            date_cart_id = cleaned_data.get('date_cart_id')
+            if not date_cart_id:
+                self.add_error('date_cart_id', "Please enter a date ID.")
+            else:
+                try:
+                    date = Date.objects.get(cart_id=date_cart_id)
+                    cleaned_data['date'] = date
+                except Date.DoesNotExist:
+                    self.add_error('date_cart_id', f"Date with ID '{date_cart_id}' does not exist.")
+        
+        elif parent_type == 'variation':
+            variation_cart_id = cleaned_data.get('variation_cart_id')
+            if not variation_cart_id:
+                self.add_error('variation_cart_id', "Please enter a variation ID.")
+            else:
+                try:
+                    variation = Variation.objects.get(cart_id=variation_cart_id)
+                    cleaned_data['variation'] = variation
+                except Variation.DoesNotExist:
+                    self.add_error('variation_cart_id', f"Variation with ID '{variation_cart_id}' does not exist.")
+        
+        return cleaned_data

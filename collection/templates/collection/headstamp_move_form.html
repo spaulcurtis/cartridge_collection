@@ -1,0 +1,47 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code country.id %}">{{ country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code current_manufacturer.id %}">{{ current_manufacturer.code }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'headstamp_detail' caliber.code headstamp.id %}">{{ headstamp.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Move</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h2 class="h5 mb-0">{{ title }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="alert alert-info">
+                Moving headstamp <strong>{{ headstamp.code }}</strong> will also move all its loads, dates, variations, and boxes.
+            </p>
+            <p>
+                Current manufacturer: <strong>{{ current_manufacturer.code }}{% if current_manufacturer.name %} - {{ current_manufacturer.name }}{% endif %}</strong> ({{ country.name }})
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    {{ form.new_manufacturer.label_tag }}
+                    {{ form.new_manufacturer }}
+                    {% if form.new_manufacturer.errors %}
+                    <div class="invalid-feedback d-block">{{ form.new_manufacturer.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                    <a href="{% url 'headstamp_detail' caliber.code headstamp.id %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

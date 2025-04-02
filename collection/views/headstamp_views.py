@@ -3,7 +3,7 @@ from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Ca
 from django.contrib.contenttypes.models import ContentType
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, HeadstampSource, Source
-from ..forms.headstamp_forms import HeadstampForm, HeadstampSourceForm
+from ..forms.headstamp_forms import HeadstampForm, HeadstampSourceForm, HeadstampMoveForm
 from ..utils.note_utils import process_notes
 
 def headstamp_detail(request, caliber_code, headstamp_id):
@@ -265,6 +265,24 @@ def headstamp_create(request, caliber_code, manufacturer_id):
         if form.is_valid():
             headstamp = form.save(commit=False)
             headstamp.manufacturer = manufacturer
+            
+            # Check for uniqueness constraint violation
+            if Headstamp.objects.filter(manufacturer=manufacturer, code=headstamp.code).exists():
+                messages.error(
+                    request, 
+                    f"Cannot create headstamp with code '{headstamp.code}' because a headstamp with "
+                    f"this code already exists for manufacturer {manufacturer.code}."
+                )
+                return render(request, 'collection/headstamp_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'manufacturer': manufacturer,
+                    'country': country,
+                    'title': f'Add New Headstamp to {manufacturer.code}',
+                    'submit_text': 'Create Headstamp',
+                })
+            
             headstamp.save()
             messages.success(request, f"Headstamp '{headstamp.code}' was created successfully.")
             return redirect('headstamp_detail', caliber_code=caliber_code, headstamp_id=headstamp.id)
@@ -281,7 +299,6 @@ def headstamp_create(request, caliber_code, manufacturer_id):
         'submit_text': 'Create Headstamp',
     })
 
-
 def headstamp_update(request, caliber_code, headstamp_id):
     """View for updating a headstamp"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -296,8 +313,33 @@ def headstamp_update(request, caliber_code, headstamp_id):
     if request.method == 'POST':
         form = HeadstampForm(manufacturer, request.POST, request.FILES, instance=headstamp)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Headstamp '{headstamp.code}' was updated successfully.")
+            updated_headstamp = form.save(commit=False)
+            
+            # Check for uniqueness constraint violation, but exclude the current headstamp
+            if Headstamp.objects.filter(
+                manufacturer=manufacturer, 
+                code=updated_headstamp.code
+            ).exclude(id=headstamp.id).exists():
+                messages.error(
+                    request, 
+                    f"Cannot update headstamp with code '{updated_headstamp.code}' because a headstamp with "
+                    f"this code already exists for manufacturer {manufacturer.code}."
+                )
+                return render(request, 'collection/headstamp_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'source_form': HeadstampSourceForm(),
+                    'headstamp': headstamp,
+                    'manufacturer': manufacturer,
+                    'country': country,
+                    'title': f'Edit Headstamp: {headstamp.code}',
+                    'submit_text': 'Update Headstamp',
+                    'headstamp_sources': headstamp_sources,
+                })
+            
+            updated_headstamp.save()
+            messages.success(request, f"Headstamp '{updated_headstamp.code}' was updated successfully.")
             return redirect('headstamp_detail', caliber_code=caliber_code, headstamp_id=headstamp.id)
     else:
         form = HeadstampForm(manufacturer, instance=headstamp)
@@ -395,3 +437,74 @@ def headstamp_remove_source(request, caliber_code, headstamp_id, source_id):
         messages.success(request, f"Source '{source_name}' was removed from headstamp.")
     
     return redirect('headstamp_update', caliber_code=caliber_code, headstamp_id=headstamp.id)
+
+def headstamp_move(request, caliber_code, headstamp_id):
+    """View for moving a headstamp to a different manufacturer"""
+    caliber = get_object_or_404(Caliber, code=caliber_code)
+    all_calibers = Caliber.objects.all().order_by('order', 'name')
+    headstamp = get_object_or_404(Headstamp, id=headstamp_id, manufacturer__country__caliber=caliber)
+    current_manufacturer = headstamp.manufacturer
+    country = current_manufacturer.country
+    
+    if request.method == 'POST':
+        form = HeadstampMoveForm(request.POST, caliber=caliber)
+        if form.is_valid():
+            new_manufacturer = form.cleaned_data['new_manufacturer']
+            
+            # Don't do anything if the manufacturer hasn't changed
+            if new_manufacturer == current_manufacturer:
+                messages.info(request, f"'{headstamp.code}' is already assigned to {current_manufacturer.code}.")
+                return redirect('headstamp_detail', caliber_code=caliber_code, headstamp_id=headstamp.id)
+            
+            # Check for uniqueness constraint violation
+            if Headstamp.objects.filter(manufacturer=new_manufacturer, code=headstamp.code).exists():
+                # There's already a headstamp with the same code in the target manufacturer
+                messages.error(
+                    request, 
+                    f"Cannot move '{headstamp.code}' to {new_manufacturer.code} because a headstamp with "
+                    f"this code already exists there."
+                )
+                return render(request, 'collection/headstamp_move_form.html', {
+                    'caliber': caliber,
+                    'all_calibers': all_calibers,
+                    'form': form,
+                    'headstamp': headstamp,
+                    'current_manufacturer': current_manufacturer,
+                    'country': country,
+                    'title': f'Move Headstamp: {headstamp.code}',
+                    'submit_text': 'Move Headstamp',
+                })
+            
+            # Update the headstamp's manufacturer
+            old_manufacturer_code = current_manufacturer.code
+            headstamp.manufacturer = new_manufacturer
+            headstamp.save()
+            
+            messages.success(
+                request, 
+                f"Headstamp '{headstamp.code}' was moved from {old_manufacturer_code} to {new_manufacturer.code}."
+            )
+            return redirect('headstamp_detail', caliber_code=caliber_code, headstamp_id=headstamp.id)
+    else:
+        form = HeadstampMoveForm(caliber=caliber)
+        
+        # Customize the manufacturer display to show country and name
+        from django.forms.models import ModelChoiceIterator
+        from django.utils.html import format_html
+        
+        class CustomModelChoiceIterator(ModelChoiceIterator):
+            def choice(self, obj):
+                return (obj.id, f"{obj.country.name} - {obj.code}{' - ' + obj.name[:30] if obj.name else ''}")
+        
+        form.fields['new_manufacturer'].widget.choices = CustomModelChoiceIterator(form.fields['new_manufacturer'])
+    
+    return render(request, 'collection/headstamp_move_form.html', {
+        'caliber': caliber,
+        'all_calibers': all_calibers,
+        'form': form,
+        'headstamp': headstamp,
+        'current_manufacturer': current_manufacturer,
+        'country': country,
+        'title': f'Move Headstamp: {headstamp.code}',
+        'submit_text': 'Move Headstamp',
+    })

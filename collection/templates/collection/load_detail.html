@@ -328,6 +328,9 @@
                     <a href="{% url 'load_update' caliber.code load.id %}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> Edit
                     </a>
+                    <a href="{% url 'load_move' caliber.code load.id %}" class="btn btn-warning">
+                        <i class="bi bi-arrows-move"></i> Move
+                    </a>                
                     <a href="{% url 'load_delete' caliber.code load.id %}" class="btn btn-danger">
                         <i class="bi bi-trash"></i> Delete
                     </a>

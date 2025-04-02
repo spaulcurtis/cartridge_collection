@@ -18,121 +18,91 @@
         overflow-y: auto;
     }
     
-    .alphabet-nav {
-        position: sticky;
-        top: 0;
-        background-color: white;
-        z-index: 20;
-        padding: 10px 0;
-        border-bottom: 1px solid #e9ecef;
+    .search-container {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1rem;
     }
     
-    .alphabet-nav a {
-        display: inline-block;
-        width: 28px;
-        height: 28px;
-        line-height: 28px;
-        text-align: center;
-        margin: 0 1px;
-        border-radius: 4px;
-        text-decoration: none;
-        color: var(--theme-color);
-    }
-    
-    .alphabet-nav a:hover {
-        background-color: var(--theme-light);
-    }
-    
-    .alphabet-nav a.active {
-        background-color: var(--theme-color);
-        color: white;
-    }
-    
-    .alphabet-nav a.disabled {
-        color: #ccc;
-        cursor: not-allowed;
-    }
-    
-    .quick-jump {
+    /* Add some styling for jump indicator (hidden by default) */
+    .jump-indicator {
         position: fixed;
-        right: 20px;
         top: 50%;
-        transform: translateY(-50%);
-        z-index: 100;
-        background-color: white;
-        border-radius: 30px;
-        padding: 10px 0;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        width: 80px;
+        height: 80px;
+        border-radius: 40px;
         display: flex;
-        flex-direction: column;
         align-items: center;
-    }
-    
-    .quick-jump a {
-        display: block;
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-        text-align: center;
-        font-size: 0.75rem;
-        text-decoration: none;
-        color: var(--theme-color);
-    }
-    
-    .quick-jump a:hover {
-        font-weight: bold;
-    }
-    
-    .quick-jump a.active {
-        font-weight: bold;
-    }
-    
-    @media (max-width: 768px) {
-        .quick-jump {
-            display: none;
-        }
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 1000;
     }
 </style>
 {% endblock %}
 
 {% block app_content %}
+<!-- Hidden jump indicator -->
+<div id="jumpIndicator" class="jump-indicator"></div>
+
 <div class="row mb-4">
     <div class="col">
         <h2>Headstamp Search</h2>
-        {% if query %}
-        <p class="text-muted">Results for "{{ query }}" in {{ caliber.name }} collection</p>
-        {% elif letter_filter %}
-        <p class="text-muted">Showing headstamps starting with "{{ letter_filter }}" in {{ caliber.name }} collection</p>
-        {% else %}
-        <p class="text-muted">All headstamps in {{ caliber.name }} collection</p>
-        {% endif %}
+        <p class="text-muted">
+            {% if code_query or name_query %}
+                Results for headstamps {% if code_query %}with code containing "{{ code_query }}"{% endif %}
+                {% if code_query and name_query %}OR{% endif %}
+                {% if name_query %}with name containing "{{ name_query }}"{% endif %}
+                in {{ caliber.name }} collection
+            {% else %}
+                All headstamps in {{ caliber.name }} collection
+            {% endif %}
+        </p>
     </div>
 </div>
 
 <div class="card dashboard-card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <form action="{% url 'headstamp_search' caliber.code %}" method="get" class="d-flex w-100">
-            <input type="text" name="q" class="form-control" placeholder="Search headstamps..." value="{{ query }}">
-            <button type="submit" class="btn btn-primary ms-2">Search</button>
-            {% if query or letter_filter %}
-            <a href="{% url 'headstamp_search' caliber.code %}" class="btn btn-outline-secondary ms-2">Clear</a>
-            {% endif %}
-        </form>
+    <div class="card-header">
+        <div class="search-container">
+            <form action="{% url 'headstamp_search' caliber.code %}" method="get" id="search-form">
+                <div class="d-flex align-items-end">
+                    <div class="flex-grow-1 me-2">
+                        <label for="code_q" class="form-label mb-1">Headstamp Code:</label>
+                        <input type="text" id="code_q" name="code_q" class="form-control" placeholder="Search by code..." value="{{ code_query }}">
+                    </div>
+                    
+                    <div class="mx-2 mb-2">
+                        <span class="fw-bold">OR</span>
+                    </div>
+                    
+                    <div class="flex-grow-1 me-3">
+                        <label for="name_q" class="form-label mb-1">Headstamp Name:</label>
+                        <input type="text" id="name_q" name="name_q" class="form-control" placeholder="Search by name..." value="{{ name_query }}">
+                    </div>
+                    
+                    <div>
+                        <button type="submit" class="btn btn-primary me-2">Search</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">Clear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="mt-2">
+            <p class="text-muted small mb-0">
+                <i class="bi bi-keyboard"></i> Tip: Type any letter to jump to headstamps starting with that letter
+            </p>
+        </div>
     </div>
     
     {% if results %}
-    <div class="alphabet-nav text-center py-2">
-        {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
-            {% if letter in available_letters %}
-                <a href="{% url 'headstamp_search' caliber.code %}?letter={{ letter }}" {% if letter_filter == letter %}class="active"{% endif %}>{{ letter }}</a>
-            {% else %}
-                <a href="#" class="disabled">{{ letter }}</a>
-            {% endif %}
-        {% endfor %}
-        <a href="{% url 'headstamp_search' caliber.code %}" {% if not letter_filter and not query %}class="active"{% endif %}>All</a>
-    </div>
-    
-    <div class="table-container">
+    <div class="table-container" id="headstampTable" tabindex="0">
         <table class="table table-hover mb-0 sticky-header">
             <thead>
                 <tr>
@@ -146,7 +116,7 @@
             </thead>
             <tbody>
                 {% for headstamp in results %}
-                <tr id="letter-{{ headstamp.code|first|upper }}">
+                <tr data-letter="{{ headstamp.code|first|upper }}" id="letter-{{ headstamp.code|first|upper }}">
                     <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.code }}</a></td>
                     <td><a href="{% url 'headstamp_detail' caliber.code headstamp.pk %}">{{ headstamp.name|default:"-" }}</a></td>
                     <td>
@@ -178,21 +148,18 @@
             </tbody>
         </table>
     </div>
-    
-    <!-- Quick jump sidebar for larger result sets -->
-    {% if results.count > 50 and not query %}
-    <div class="quick-jump">
-        {% for letter in available_letters %}
-            <a href="#letter-{{ letter }}" {% if letter_filter == letter %}class="active"{% endif %}>{{ letter }}</a>
-        {% endfor %}
-    </div>
-    {% endif %}
     {% else %}
     <div class="card-body text-center py-5">
-        {% if query %}
+        {% if code_query or name_query %}
             <p class="mb-3"><i class="bi bi-search text-muted" style="font-size: 2rem;"></i></p>
             <h4>No headstamps found</h4>
-            <p class="text-muted">No headstamps matching "{{ query }}" in the {{ caliber.name }} collection.</p>
+            <p class="text-muted">
+                No headstamps matching 
+                {% if code_query %}code "{{ code_query }}"{% endif %}
+                {% if code_query and name_query %}or{% endif %}
+                {% if name_query %}name "{{ name_query }}"{% endif %}
+                in the {{ caliber.name }} collection.
+            </p>
             <a href="{% url 'dashboard' caliber.code %}" class="btn btn-primary mt-3">Return to Dashboard</a>
         {% else %}
             <p class="mb-3"><i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i></p>
@@ -203,8 +170,75 @@
     {% endif %}
     
     <div class="card-footer d-flex justify-content-between align-items-center">
-        <span>Total: {{ total_count }} headstamp(s)</span>
+        <div>
+            <span>Total: {{ total_count }} headstamp(s)</span>
+            <!-- Link to advanced search (placeholder for future implementation) -->
+            {% if results %}
+            <a href="{% url 'advanced_search' caliber.code %}" class="btn btn-sm btn-link ms-3">
+                <i class="bi bi-sliders"></i> Advanced Search
+            </a>
+            {% endif %}
+        </div>
         <a href="{% url 'dashboard' caliber.code %}" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+    function clearSearch() {
+        document.getElementById('code_q').value = '';
+        document.getElementById('name_q').value = '';
+        document.getElementById('search-form').submit();
+    }
+    
+    // Keyboard navigation for headstamp table
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableContainer = document.getElementById('headstampTable');
+        
+        if (!tableContainer) return;
+        
+        // Make sure the table container can receive keyboard events
+        tableContainer.setAttribute('tabindex', '0');
+        
+        // Set focus to the table container when the page loads
+        setTimeout(() => {
+            tableContainer.focus();
+        }, 500);
+        
+        // Listen for keydown events on the table
+        tableContainer.addEventListener('keydown', function(event) {
+            // Only process single letter key presses
+            if (event.key.length === 1 && /[a-zA-Z]/.test(event.key)) {
+                const letter = event.key.toUpperCase();
+                
+                // Find the first row with that letter
+                const targetRow = document.querySelector(`tr[data-letter="${letter}"]`);
+                
+                if (targetRow) {
+                    // Scroll to the row
+                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Briefly highlight the row for better visibility
+                    targetRow.classList.add('table-active');
+                    setTimeout(() => {
+                        targetRow.classList.remove('table-active');
+                    }, 1500);
+                    
+                    // Prevent the keypress from affecting other elements
+                    event.preventDefault();
+                }
+            }
+        });
+        
+        // Add focus handler to show users they can type to navigate
+        tableContainer.addEventListener('focus', function() {
+            tableContainer.style.outline = '2px solid var(--theme-color)';
+        });
+        
+        tableContainer.addEventListener('blur', function() {
+            tableContainer.style.outline = 'none';
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}

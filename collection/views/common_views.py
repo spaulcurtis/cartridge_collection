@@ -245,33 +245,6 @@ def dashboard(request, caliber_code):
         'recent_activities': recent_activities,
     }
 
-    # # Get recent items (limited to 5 each)
-    # recent_headstamps = Headstamp.objects.filter(
-    #     manufacturer__country__caliber=caliber
-    # ).order_by('-created_at')[:5]
-    
-    # recent_loads = Load.objects.filter(
-    #     headstamp__manufacturer__country__caliber=caliber
-    # ).order_by('-created_at')[:5]
-    
-    # recent_boxes = Box.objects.filter(
-    #     Q(content_type=country_content_type, object_id__in=country_ids) |
-    #     Q(content_type=manufacturer_content_type, object_id__in=manufacturer_ids) |
-    #     Q(content_type=headstamp_content_type, object_id__in=headstamp_ids) |
-    #     Q(content_type=load_content_type, object_id__in=load_ids) |
-    #     Q(content_type=date_content_type, object_id__in=date_ids) |
-    #     Q(content_type=variation_content_type, object_id__in=list(load_var_ids) + list(date_var_ids))
-    # ).order_by('-created_at')[:5]
-    
-    # context = {
-    #     'caliber': caliber,
-    #     'all_calibers': all_calibers,
-    #     'stats': stats,
-    #     'recent_headstamps': recent_headstamps,
-    #     'recent_loads': recent_loads,
-    #     'recent_boxes': recent_boxes,
-    # }
-
     return render(request, 'collection/dashboard.html', context)
 
 
@@ -378,13 +351,20 @@ def record_search(request, caliber_code):
 def headstamp_search(request, caliber_code):
     """
     Search for headstamps by code or name within the current caliber.
-    If no query is provided, return all headstamps with alphabet navigation.
+    Supports separate code and name searches with combined OR logic.
+    Letter filtering is additive to any search criteria.
     """
     caliber = get_object_or_404(Caliber, code=caliber_code)
-    query = request.GET.get('q', '').strip()
     
-    # Filter headstamps by letter if provided
-    letter_filter = request.GET.get('letter', '').upper()
+    # Get search parameters
+    query = request.GET.get('q', '').strip()  # For backward compatibility with header search
+    code_query = request.GET.get('code_q', '').strip()
+    name_query = request.GET.get('name_q', '').strip()
+    
+    # If query is provided but code/name are not, populate both code and name with query
+    if query and not (code_query or name_query):
+        code_query = query
+        name_query = query
     
     # Base queryset for all headstamps in this caliber
     headstamps = Headstamp.objects.filter(
@@ -393,14 +373,20 @@ def headstamp_search(request, caliber_code):
         'manufacturer', 'manufacturer__country'
     )
     
-    # Apply search filter if query exists
-    if query:
-        headstamps = headstamps.filter(
-            Q(code__icontains=query) | Q(name__icontains=query)
-        )
-    # Apply letter filter if no query but letter is specified
-    elif letter_filter and len(letter_filter) == 1:
-        headstamps = headstamps.filter(code__istartswith=letter_filter)
+    # Build filter conditions
+    filter_conditions = Q()
+    
+    # Apply code search if provided
+    if code_query:
+        filter_conditions |= Q(code__icontains=code_query)
+    
+    # Apply name search if provided
+    if name_query:
+        filter_conditions |= Q(name__icontains=name_query)
+    
+    # Apply combined search filter if any search criteria exist
+    if filter_conditions:
+        headstamps = headstamps.filter(filter_conditions)
     
     # Get all available first letters for alphabet navigation
     available_letters = Headstamp.objects.filter(
@@ -418,9 +404,9 @@ def headstamp_search(request, caliber_code):
     context = {
         'caliber': caliber,
         'query': query,
-        'letter_filter': letter_filter,
+        'code_query': code_query,
+        'name_query': name_query,
         'results': headstamps,
-        'available_letters': available_letters,
         'all_calibers': Caliber.objects.all().order_by('order', 'name'),
         'total_count': headstamps.count(),
     }

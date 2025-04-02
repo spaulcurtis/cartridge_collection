@@ -4,11 +4,13 @@ Make sure multiple caliber and non-unique bid works for get_parent_display(). DO
 Update the models for country description and legacy id. DONE
 Implement artifact search (within this caliber) DONE
 Implement headstamp search (within this caliber) DONE
+Prep Photos for import ALMOST
 
 WEDNESDAY/THURSDAY
 Photo import, by hook or by crook
-Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy
+Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy DONE
 Update Documentation and support pages
+Enhance Headstamp Search DONE
 
 
 FRIDAY
@@ -31,4 +33,15 @@ Advanced search
 
 Image View/Editor and productized import
 
+
+Great input; thanks.  I will plan to proceed in stages:
+1. delete all the media files and image links I currently have.  The only images I have now are for test purposes.  I assume I'll do this directly from macOS and sqlite3 command line.
+2. Make the appropriate subdirectories under media, and make the Django program changes to put the images in the right directory with the right file name and prevent duplicate copies if the file is already there.
+3. Test these changes with with some additional test images for the various use cases.
+4. Again delete all the images and links from macOS and sqlite3.
+5. Do the one-time import of existing images into database.  Implement mechanisms outside of Django to copy media and update image field directly from sqlite3.
+6. Consider additional enhancements for the Django application in the debug/development environment
+7. (eventually) work on changes needed for a web deployment.
+
+Does this sound like a good approach?
 

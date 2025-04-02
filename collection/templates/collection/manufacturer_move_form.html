@@ -1,0 +1,46 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_list' caliber.code %}">Countries</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'country_detail' caliber.code current_country.id %}">{{ current_country.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}">{{ manufacturer.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Move</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h2 class="h5 mb-0">{{ title }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="alert alert-info">
+                Moving manufacturer <strong>{{ manufacturer.code }}</strong> will also move all its headstamps, loads, dates, variations, and boxes.
+            </p>
+            <p>
+                Current country: <strong>{{ current_country.name }}</strong>
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    {{ form.new_country.label_tag }}
+                    {{ form.new_country }}
+                    {% if form.new_country.errors %}
+                    <div class="invalid-feedback d-block">{{ form.new_country.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                    <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

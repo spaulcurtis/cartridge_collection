@@ -65,6 +65,8 @@ Manufacturer  is now part of Django app import.
 
 ## Current Status
 
+Copy Paul's datbase to LewDell
+
 First manually empty the target database readying it for migration.  Run "empty_for_migration.py"
 
 Then prep the source database by running "old_db_prep_for_migration.py"  This will
