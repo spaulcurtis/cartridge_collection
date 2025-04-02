@@ -7,6 +7,9 @@ Implement headstamp search (within this caliber) DONE
 
 WEDNESDAY/THURSDAY
 Photo import, by hook or by crook
+Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy
+Update Documentation and support pages
+
 
 FRIDAY
 Get Poppy's computer and migrate him to the new program.

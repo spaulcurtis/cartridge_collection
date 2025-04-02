@@ -7,6 +7,8 @@ This is a [Django](https://www.djangoproject.com/) based web application for a c
 
 ### To Do
 
+notes are squished up against the Notes: line above (at least in dates)
+
 #### Logging
 
 Add logging for debug.

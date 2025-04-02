@@ -83,19 +83,6 @@
         </ol>
     </nav>
 
-    <!-- Display messages if any -->
-    {% if messages %}
-    <div class="row mb-4">
-        <div class="col">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
     <h2 class="mb-4">{{ title }}</h2>
 
     <div class="delete-container">
