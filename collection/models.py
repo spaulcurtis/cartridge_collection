@@ -1,9 +1,125 @@
+import os
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from django.conf import settings
+
+# ===============================
+# Image Path Functions 
+# ===============================
+
+def headstamp_image_path(instance, filename):
+    """
+    Generate the upload path for headstamp images
+    Format: caliber/headstamps/<manufacturer code>_<headstamp code>.<extension>
+    """
+    # Get the caliber code
+    caliber_code = instance.manufacturer.country.caliber.code
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1].lower()
+    
+    # Generate filename using the instance's code
+    new_filename = f"{instance.manufacturer.code}_{instance.code}{ext}"
+    
+    # Return the full path
+    return f"{caliber_code}/headstamps/{new_filename}"
+
+def common_collection_image_path(instance, filename):
+    """
+    Common upload_to function that determines the appropriate path based on the model type
+    """
+    model_name = instance.__class__.__name__
+    
+    if model_name == 'Load':
+        return load_image_path(instance, filename)
+    elif model_name == 'Date':
+        return date_image_path(instance, filename)
+    elif model_name == 'Variation':
+        return variation_image_path(instance, filename)
+    elif model_name == 'Box':
+        return box_image_path(instance, filename)
+    else:
+        # Default fallback - should not happen with your models
+        return f"other/{filename}"
+
+def load_image_path(instance, filename):
+    """
+    Generate the upload path for load images
+    Format: caliber/loads/<cart_id>.<extension>
+    """
+    # Get the caliber code
+    caliber_code = instance.headstamp.manufacturer.country.caliber.code
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1].lower()
+    
+    # Generate filename using the cart_id
+    new_filename = f"{instance.cart_id}{ext}"
+    
+    # Return the full path
+    return f"{caliber_code}/loads/{new_filename}"
+
+def date_image_path(instance, filename):
+    """
+    Generate the upload path for date images
+    Format: caliber/dates/<cart_id>.<extension>
+    """
+    # Get the caliber code
+    caliber_code = instance.load.headstamp.manufacturer.country.caliber.code
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1].lower()
+    
+    # Generate filename using the cart_id
+    new_filename = f"{instance.cart_id}{ext}"
+    
+    # Return the full path
+    return f"{caliber_code}/dates/{new_filename}"
+
+def variation_image_path(instance, filename):
+    """
+    Generate the upload path for variation images
+    Format: caliber/variations/<cart_id>.<extension>
+    """
+    # Get the caliber code
+    if instance.load:
+        caliber_code = instance.load.headstamp.manufacturer.country.caliber.code
+    elif instance.date:
+        caliber_code = instance.date.load.headstamp.manufacturer.country.caliber.code
+    else:
+        caliber_code = "unknown"
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1].lower()
+    
+    # Generate filename using the cart_id
+    new_filename = f"{instance.cart_id}{ext}"
+    
+    # Return the full path
+    return f"{caliber_code}/variations/{new_filename}"
+
+def box_image_path(instance, filename):
+    """
+    Generate the upload path for box images
+    Format: caliber/boxes/<bid>.<extension>
+    """
+    # Get the caliber
+    caliber = instance.parent_caliber()
+    caliber_code = caliber.code if caliber else "unknown"
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1].lower()
+    
+    # Generate filename using the bid
+    new_filename = f"{instance.bid}{ext}"
+    
+    # Return the full path
+    return f"{caliber_code}/boxes/{new_filename}"
+
 
 # ===============================
 # Overall Collection Table 
@@ -157,9 +273,55 @@ class BaseCollectionItem(models.Model):
     acquisition_note = models.CharField("Acqu. Note", max_length=50, blank=True, null=True)
     price = models.DecimalField("Price/Value", max_digits=10, decimal_places=2, blank=True, null=True)
     note = models.TextField("Notes", blank=True, null=True)
-    image = models.ImageField(upload_to='artifacts/', blank=True, null=True)
+    image = models.ImageField(upload_to=common_collection_image_path, blank=True, null=True)
     legacy_id = models.CharField("Legacy ID", max_length=20, blank=True, null=True)
     
+    # Add a method to handle duplicate file prevention
+    def check_duplicate_image(self):
+        """Check if an image with the same name already exists and use it instead"""
+        if not self.image:
+            return
+            
+        if not hasattr(self.image, 'name') or not self.image.name:
+            return
+            
+        # Get the model name
+        model_name = self.__class__.__name__
+        
+        # Get the path that would be generated
+        desired_name = common_collection_image_path(self, self.image.name)
+        
+        # Print debugging info
+        print(f"Model: {model_name}, Original name: {self.image.name}")
+        print(f"Desired path: {desired_name}")
+        
+        # Check if this file already exists in MEDIA_ROOT
+        full_path = os.path.join(settings.MEDIA_ROOT, desired_name)
+        print(f"Checking if file exists at: {full_path}")
+        
+        if os.path.exists(full_path):
+            print(f"File exists! Setting image.name to: {desired_name}")
+            
+            # For uploaded files, we need a more aggressive approach
+            if hasattr(self.image, 'file'):
+                # This is the key change - we're effectively replacing the file object
+                # with a reference to the existing file
+                self.image.file.close()
+                self.image = desired_name
+            else:
+                # For already saved string paths
+                self.image.name = desired_name
+                
+            print(f"After setting: image = {self.image}, image.name = {getattr(self.image, 'name', None)}")
+    
+
+    def save(self, *args, **kwargs):
+        # Check for duplicate images
+        self.check_duplicate_image()
+        
+        print (self.image.name)
+        super().save(*args, **kwargs)
+
     def image_count(self):
         """Return 1 if this item has an image, 0 otherwise"""
         return 1 if self.image else 0
@@ -271,10 +433,30 @@ class Headstamp(models.Model):
     )
     cc = models.IntegerField("Credibility Code", choices=CREDIBILITY_CHOICES, default=1)
     note = models.TextField("Notes", blank=True, null=True)
-    image = models.ImageField(upload_to='headstamps/', blank=True, null=True)
+    image = models.ImageField(upload_to=headstamp_image_path, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def save(self, *args, **kwargs):
+        if self.image and hasattr(self.image, 'name'):
+            # Get the path that would be generated
+            desired_name = headstamp_image_path(self, self.image.name)
+            
+            # Check if this file already exists in MEDIA_ROOT
+            full_path = os.path.join(settings.MEDIA_ROOT, desired_name)
+            
+            if os.path.exists(full_path):
+                # File exists - use the more aggressive approach that worked for Load
+                if hasattr(self.image, 'file'):
+                    # Close the file and replace the entire image object with the path
+                    self.image.file.close()
+                    self.image = desired_name
+                else:
+                    # For already saved string paths
+                    self.image.name = desired_name
+        
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.code}" if not self.name else f"{self.code} - {self.name}"
     
