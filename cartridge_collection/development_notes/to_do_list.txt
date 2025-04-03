@@ -4,11 +4,11 @@ Make sure multiple caliber and non-unique bid works for get_parent_display(). DO
 Update the models for country description and legacy id. DONE
 Implement artifact search (within this caliber) DONE
 Implement headstamp search (within this caliber) DONE
-Prep Photos for import ALMOST
+Prep Photos for import DONE 
 
 WEDNESDAY/THURSDAY
-Photo import, by hook or by crook
-Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy DONE
+Photo import, by hook or by crook DONE
+Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy DONE FOR ALL BUT DATE/VAR
 Update Documentation and support pages
 Enhance Headstamp Search DONE
 

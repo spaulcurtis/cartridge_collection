@@ -1,5 +1,6 @@
 from .common_views import (
-    landing, dashboard, record_search, headstamp_search, advanced_search, add_artifact, import_images, documentation, support
+    landing, dashboard, record_search, headstamp_search, advanced_search, add_artifact, 
+    import_images, support_view, user_guide_view
 )
 
 from .country_views import (

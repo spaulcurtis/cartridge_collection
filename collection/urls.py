@@ -85,7 +85,12 @@ urlpatterns = [
     path('<str:caliber_code>/import-images/', views.import_images, name='import_images'),
     
     # Support and docs
-    path('documentation/', views.documentation, name='documentation'),
-    path('support/', views.support, name='support'),
+    # Without caliber (will use first active caliber)
+    path('documentation/user-guide/', views.user_guide_view, name='user_guide'),
+    path('documentation/support/', views.support_view, name='support'),
+
+    # With caliber specified in URL
+    path('<str:caliber_code>/documentation/user-guide/', views.user_guide_view, name='user_guide_with_caliber'),
+    path('<str:caliber_code>/documentation/support/', views.support_view, name='support_with_caliber'),
 ]
 
