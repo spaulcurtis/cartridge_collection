@@ -1,0 +1,299 @@
+{% extends 'collection/app_base.html' %}
+{% load static %}
+
+{% block title %}User Guide - Documentation{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .documentation-content {
+        line-height: 1.6;
+    }
+    .documentation-content h1, 
+    .documentation-content h2,
+    .documentation-content h3,
+    .documentation-content h4 {
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .documentation-content ul, 
+    .documentation-content ol {
+        margin-bottom: 1rem;
+    }
+    .documentation-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 1rem 0;
+    }
+    .documentation-content .alert {
+        margin: 1rem 0;
+    }
+    .documentation-content pre {
+        background-color: var(--theme-super-light);
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        overflow-x: auto;
+    }
+    .docs-sidebar {
+        position: sticky;
+        top: 2rem;
+    }
+    .hierarchy-diagram {
+        font-family: monospace;
+        white-space: pre;
+        background-color: var(--theme-super-light);
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+    }
+    .nav-item {
+        padding: 0.3rem 0;
+    }
+    kbd {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+        color: #212529;
+        display: inline-block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.2rem 0.4rem;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">User Guide</li>
+                </ol>
+            </nav>
+            
+            <div class="documentation-content">
+                <h1 class="mb-4">Cartridge Collection User Guide</h1>
+                
+                <h2 id="introduction">Introduction</h2>
+                
+                <p class="lead">The Cartridge Collection application is designed to help catalog and organize ammunition cartridges in a simple, intuitive way. This guide explains how to navigate the application and manage your collection.</p>
+                
+                <h2 id="structure">Collection Structure</h2>
+                
+                <p>The application is organized around <strong>cartridge types</strong> (calibers), with each type (like 9mm Luger or .45 ACP) representing a separate collection. Once you select a cartridge type, all navigation and records you view will be within that specific collection.</p>
+                
+                <p>The database uses a hierarchical structure that mirrors how cartridges are classified in the real world:</p>
+                
+                <div class="hierarchy-diagram">
+Caliber
+  └── Country
+       └── Manufacturer
+            └── Headstamp
+                 └── Load
+                      ├── Date/Lot
+                      │    └── Variation (of Date)
+                      └── Variation (of Load)
+                </div>
+                
+                <p>Boxes can be attached to any level in this hierarchy (Country, Manufacturer, Headstamp, Load, Date, or Variation).</p>
+                
+                <h2 id="navigation">Navigation Methods</h2>
+                
+                <h3 id="drill-down">1. Drill-Down Navigation</h3>
+                
+                <p>The primary way to browse the collection is by drilling down from Country level:</p>
+                
+                <ol>
+                    <li>Start at the Dashboard for your selected caliber</li>
+                    <li>Click "Browse from Country" in the header</li>
+                    <li>Select a country from the list</li>
+                    <li>From the country detail page, select a manufacturer</li>
+                    <li>From the manufacturer detail page, select a headstamp</li>
+                    <li>From the headstamp detail page, select a load</li>
+                    <li>Continue to dates and variations as needed</li>
+                </ol>
+                
+                <p>At each level, you'll see counts showing how many records exist at lower levels, which helps you decide where to explore.</p>
+                
+                <h3 id="breadcrumb">2. Breadcrumb Navigation</h3>
+                
+                <p>Once you're viewing a detail page for any record, you can use the breadcrumb trail at the top of the page to navigate back up the hierarchy:</p>
+                
+                <div class="alert alert-light">
+                    Dashboard > Countries > GERMANY, WEST > DAG > DA03J
+                </div>
+                
+                <p>Click any link in this trail to return to that level.</p>
+                
+                <h3 id="direct-id">3. Direct ID Search</h3>
+                
+                <p>For quick access to a specific cartridge or box, use the ID search in the top-right corner:</p>
+                
+                <ol>
+                    <li>Enter an ID like "L123" (for Load), "D45" (for Date), "V67" (for Variation), or "B89" (for Box)</li>
+                    <li>Click the green "Go" button</li>
+                    <li>You'll be taken directly to that record's detail page</li>
+                </ol>
+                
+                <h3 id="headstamp-search">4. Headstamp Search</h3>
+                
+                <p>To find cartridges by their headstamp markings:</p>
+                
+                <ol>
+                    <li>Use the search field in the header (blue search button)</li>
+                    <li>Enter any part of a headstamp code or description</li>
+                    <li>Browse the results and click on any headstamp to view its details</li>
+                    <li>In the search results, you can also use keyboard navigation - type any letter to jump to headstamps starting with that letter</li>
+                </ol>
+                
+                <h2 id="adding">Adding New Cartridges</h2>
+                
+                <p>A common workflow is adding a new cartridge to your collection:</p>
+                
+                <h3 id="check-existing">Step 1: Check if the headstamp already exists</h3>
+                
+                <ol>
+                    <li>Use the headstamp search to look for similar headstamps</li>
+                    <li>If you find the exact headstamp, you may only need to add a new load, date, or variation</li>
+                </ol>
+                
+                <h3 id="add-records">Step 2: Add records as needed</h3>
+                
+                <p>If the headstamp is new, you'll need to create several records:</p>
+                
+                <ol>
+                    <li><strong>Add Manufacturer</strong> (if needed) from the Country detail page</li>
+                    <li><strong>Add Headstamp</strong> from the Manufacturer detail page</li>
+                    <li><strong>Add Load</strong> from the Headstamp detail page</li>
+                    <li><strong>Add Date/Lot</strong> (if applicable) from the Load detail page</li>
+                    <li><strong>Add Variation</strong> (if applicable) from either the Load or Date detail page</li>
+                    <li><strong>Add Box</strong> (if applicable) from any level detail page</li>
+                </ol>
+                
+                <p>Each record is created in the correct context automatically - the application maintains the proper relationships between records based on where you start the "Add" action.</p>
+                
+                <h2 id="detail-pages">Record Details Pages</h2>
+                
+                <p>Detail pages are the heart of the application. Each page shows:</p>
+                
+                <ol>
+                    <li><strong>Record information</strong> - all fields for the current record</li>
+                    <li><strong>Action buttons</strong> - Edit, Delete, and sometimes Move</li>
+                    <li><strong>Related records</strong> - tables showing child records</li>
+                    <li><strong>Breadcrumb navigation</strong> - to move up the hierarchy</li>
+                    <li><strong>Image</strong> (if available) - visual representation of the item</li>
+                </ol>
+                
+                <p>From any detail page, you can:</p>
+                <ul>
+                    <li>Edit the current record</li>
+                    <li>Add related child records</li>
+                    <li>Navigate up or down the hierarchy</li>
+                    <li>View images (when available)</li>
+                </ul>
+                
+                <h2 id="moving">Moving Records</h2>
+                
+                <p>If you need to correct a mistake or reorganize after discovering new information:</p>
+                
+                <ol>
+                    <li>Go to the detail page of the record you want to move</li>
+                    <li>Click the "Move" button</li>
+                    <li>Select the new parent record</li>
+                    <li>The record and all its children will be moved to the new location</li>
+                </ol>
+                
+                <h2 id="images">Images</h2>
+                
+                <p>The application supports images for:</p>
+                <ul>
+                    <li>Headstamps</li>
+                    <li>Loads</li>
+                    <li>Dates</li>
+                    <li>Variations</li>
+                    <li>Boxes</li>
+                </ul>
+                
+                <p>When viewing a record with an image, it will be displayed in the detail page. You can also see image counts (camera icon) in list views, showing how many items have associated images.</p>
+                
+                <h2 id="dashboard">Dashboard</h2>
+                
+                <p>The Dashboard provides an overview of your collection for the selected caliber, including:</p>
+                
+                <ol>
+                    <li><strong>Collection statistics</strong> - counts of all record types</li>
+                    <li><strong>Recent activity</strong> - recently added or modified records</li>
+                    <li><strong>Quick actions</strong> - common tasks like adding artifacts or importing records</li>
+                </ol>
+                
+                <h2 id="tips">Quick Tips</h2>
+                
+                <ul>
+                    <li><strong>Look for counts with images</strong>: Each list shows total counts and image counts</li>
+                    <li><strong>Use the green "Go" button</strong>: For direct access to known IDs</li>
+                    <li><strong>Use headstamp search</strong>: When adding new cartridges to check duplicates</li>
+                    <li><strong>Use breadcrumbs</strong>: To navigate back up the hierarchy</li>
+                    <li><strong>Images help identification</strong>: Check thumbnails when browsing lists</li>
+                </ul>
+                
+                <h2 id="conclusion">Conclusion</h2>
+                
+                <p>The Cartridge Collection application is designed to mirror the natural organization of a physical collection while providing flexible navigation options. Use the drill-down approach to explore the collection, use direct ID access when you know what you're looking for, and use the headstamp search when adding new items or researching specific markings.</p>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="docs-sidebar">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Table of Contents</h4>
+                    </div>
+                    <div class="card-body">
+                        <nav class="nav flex-column">
+                            <a class="nav-link" href="#introduction">Introduction</a>
+                            <a class="nav-link" href="#structure">Collection Structure</a>
+                            <a class="nav-link" href="#navigation">Navigation Methods</a>
+                            <ul class="nav flex-column ps-3">
+                                <li class="nav-item"><a class="nav-link" href="#drill-down">Drill-Down Navigation</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#breadcrumb">Breadcrumb Navigation</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#direct-id">Direct ID Search</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#headstamp-search">Headstamp Search</a></li>
+                            </ul>
+                            <a class="nav-link" href="#adding">Adding New Cartridges</a>
+                            <a class="nav-link" href="#detail-pages">Record Details Pages</a>
+                            <a class="nav-link" href="#moving">Moving Records</a>
+                            <a class="nav-link" href="#images">Images</a>
+                            <a class="nav-link" href="#dashboard">Dashboard</a>
+                            <a class="nav-link" href="#tips">Quick Tips</a>
+                            <a class="nav-link" href="#conclusion">Conclusion</a>
+                        </nav>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Resources</h4>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'support' %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-question-circle me-2"></i> Support
+                        </a>
+                        <a href="{% url 'dashboard' caliber.code %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-house-door me-2"></i> Return to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -14,7 +14,7 @@ from django.conf import settings
 def headstamp_image_path(instance, filename):
     """
     Generate the upload path for headstamp images
-    Format: caliber/headstamps/<manufacturer code>_<headstamp code>.<extension>
+    Format: caliber/headstamps/<country_id>_<manufacturer code>_<headstamp code>.<extension>
     """
     # Get the caliber code
     caliber_code = instance.manufacturer.country.caliber.code
@@ -22,11 +22,13 @@ def headstamp_image_path(instance, filename):
     # Get file extension
     ext = os.path.splitext(filename)[1].lower()
     
-    # Generate filename using the instance's code
-    new_filename = f"{instance.manufacturer.code}_{instance.code}{ext}"
+    # Generate filename using the instance's code, including country_id for uniqueness
+    country_id = instance.manufacturer.country.id
+    new_filename = f"{country_id}_{instance.manufacturer.code}_{instance.code}{ext}"
     
     # Return the full path
     return f"{caliber_code}/headstamps/{new_filename}"
+
 
 def common_collection_image_path(instance, filename):
     """

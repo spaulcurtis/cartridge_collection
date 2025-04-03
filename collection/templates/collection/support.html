@@ -1,0 +1,231 @@
+{% extends 'collection/app_base.html' %}
+{% load static %}
+
+{% block title %}Support - Cartridge Collection{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .support-icon {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--theme-super-light);
+        color: var(--theme-color);
+        border-radius: 50%;
+        margin-right: 1rem;
+    }
+    .contact-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .contact-details {
+        flex: 1;
+    }
+    .documentation-content {
+        line-height: 1.6;
+    }
+    .faq-item {
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1.5rem;
+    }
+    .faq-item:last-child {
+        border-bottom: none;
+    }
+    .faq-question {
+        font-weight: 600;
+        color: var(--theme-color);
+        margin-bottom: 0.75rem;
+    }
+    .feature-list {
+        padding-left: 1.5rem;
+    }
+    .feature-list li {
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Support</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-4">Support</h1>
+            
+            <!-- Contact Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Contact Information</h2>
+                </div>
+                <div class="card-body">
+                    <p>For assistance with the Cartridge Collection application, please use one of the following contact methods:</p>
+                    
+                    <div class="contact-info">
+                        <div class="support-icon">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3 class="h5 mb-0">Paul Curtis</h3>
+                            <p class="text-muted mb-0">Primary Contact</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <div class="support-icon">
+                            <i class="bi bi-envelope-fill"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3 class="h5 mb-0">Email</h3>
+                            <p class="mb-0"><a href="mailto:spaulcurtis@gmail.com">spaulcurtis@gmail.com</a></p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <div class="support-icon">
+                            <i class="bi bi-telephone-fill"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3 class="h5 mb-0">Phone</h3>
+                            <p class="mb-0">(404) 734-7859</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-2"></i> When reporting issues, please be as specific as possible. Include what you were doing when the issue occurred and any error messages you may have seen.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Frequently Asked Questions -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Frequently Asked Questions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="faq-item">
+                        <h3 class="faq-question">How do I start and stop the application?</h3>
+                        <div class="faq-answer">
+                            <p><strong>To start the application:</strong> Double-click on the <strong>collect</strong> icon on your desktop. This will start the web server and open your browser.</p>
+                            
+                            <p><strong>To stop the application:</strong> Press <kbd>CTRL</kbd>+<kbd>C</kbd> in the Windows terminal window where the web server is running. This controlled shutdown prevents database corruption.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h3 class="faq-question">How do I update the application?</h3>
+                        <div class="faq-answer">
+                            <p>To get the newest version of the application, double-click on the <strong>sync collection</strong> icon on your desktop. This will pull the latest source code from GitHub.</p>
+                            
+                            <p>Generally, Paul will contact you to tell you when new bug fixes or features are available.</p>
+                            
+                            <p>Most code updates will be compatible with your existing database. Sometimes certain types of updates will require coordinated changes between the application and the underlying database. In these cases, Paul will schedule a maintenance time to make the coordinated changes.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h3 class="faq-question">How do I search for specific items?</h3>
+                        <div class="faq-answer">
+                            <p>There are several ways to find items in the collection:</p>
+                            <ul>
+                                <li><strong>Drill Down:</strong> Navigate from Countries down through the hierarchy</li>
+                                <li><strong>Direct ID Search:</strong> Use the green "Go" button in the upper right to directly access Load, Date, Variation, or Box records by ID (e.g., B231 for Box 231)</li>
+                                <li><strong>Headstamp Search:</strong> Use the blue "Search" button to find headstamps matching your query (either by headstamp code or name)</li>
+                                <li><strong>Filtered Lists:</strong> Use filters on list pages to narrow down results</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h3 class="faq-question">How do I navigate between different calibers?</h3>
+                        <div class="faq-answer">
+                            <p>The application now supports multiple calibers (cartridge types). To switch between them:</p>
+                            <ol>
+                                <li>Click on the caliber dropdown in the top navigation bar</li>
+                                <li>Select the caliber you want to view</li>
+                                <li>You will be taken to the dashboard for that caliber</li>
+                            </ol>
+                            <p>All navigation and searches will apply only to the currently selected caliber.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h3 class="faq-question">What if I need to move a record to a different parent?</h3>
+                        <div class="faq-answer">
+                            <p>If you need to correct a mistake or reorganize your collection:</p>
+                            <ol>
+                                <li>Go to the detail page for the record you want to move</li>
+                                <li>Click the "Move" button</li>
+                                <li>Select the new parent record from the options</li>
+                                <li>Confirm the move</li>
+                            </ol>
+                            <p>The record and all its children will be moved to the new location in the hierarchy.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upcoming Features -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Upcoming Features</h2>
+                </div>
+                <div class="card-body">
+                    <p>We're continually updating the capabilities of the collection app. Here are some of the features we're working on:</p>
+                    
+                    <ul class="feature-list">
+                        <li><strong>Improved image management:</strong> Better handling of multiple images per record</li>
+                        <li><strong>Advanced filtering:</strong> More powerful search and filter options</li>
+                        <li><strong>Export capabilities:</strong> Export your collection data in various formats</li>
+                        <li><strong>Box tracking improvements:</strong> Better linking between boxes and their contents</li>
+                        <li><strong>Mobile compatibility:</strong> Improved experience on smaller screens and tablets</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Resources</h4>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'user_guide' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-book me-2"></i> User Guide
+                    </a>
+                    <a href="{% url 'dashboard' caliber.code %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-house-door me-2"></i> Return to Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Quick Links</h4>
+                </div>
+                <div class="card-body">
+                    <a href="https://github.com/spaulcurtis/collection_webapp" target="_blank" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-github me-2"></i> GitHub Repository
+                    </a>
+                    <a href="mailto:spaulcurtis@gmail.com?subject=Cartridge Collection Support" class="btn btn-outline-success w-100">
+                        <i class="bi bi-envelope me-2"></i> Email Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

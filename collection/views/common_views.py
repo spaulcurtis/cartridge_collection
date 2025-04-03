@@ -438,15 +438,53 @@ def import_images(request, caliber_code):
         'message': 'This page is under construction'
     })
 
-def documentation(request):
-    return render(request, 'collection/placeholder.html', {
-        'title': 'Documentation',
-        'message': 'Documentation is under construction'
-    })
 
-def support(request):
-    return render(request, 'collection/placeholder.html', {
-        'title': 'Support',
-        'message': 'Support page is under construction'
-    })
+def get_current_caliber(request):
+    """Helper function to get the current caliber from session or default to first active one"""
+    # Try to get caliber from session
+    caliber_code = request.session.get('current_caliber')
+    
+    # If we have a caliber code in session, try to get that caliber
+    if caliber_code:
+        try:
+            return Caliber.objects.get(code=caliber_code, is_active=True)
+        except Caliber.DoesNotExist:
+            pass
+    
+    # Fallback to first active caliber
+    active_calibers = Caliber.objects.filter(is_active=True).order_by('order')
+    if active_calibers.exists():
+        return active_calibers.first()
+    
+    # Return None if no active calibers found
+    return None
 
+def user_guide_view(request):
+    """User guide view"""
+    context = {}
+    
+    # Get current caliber for navigation
+    caliber = get_current_caliber(request)
+    
+    # Add caliber to context
+    context['caliber'] = caliber
+    
+    # Get all calibers for dropdown
+    context['all_calibers'] = Caliber.objects.all().order_by('order')
+    
+    return render(request, 'collection/user_guide.html', context)
+
+def support_view(request):
+    """Support page view"""
+    context = {}
+    
+    # Get current caliber for navigation
+    caliber = get_current_caliber(request)
+    
+    # Add caliber to context
+    context['caliber'] = caliber
+    
+    # Get all calibers for dropdown
+    context['all_calibers'] = Caliber.objects.all().order_by('order')
+    
+    return render(request, 'collection/support.html', context)
