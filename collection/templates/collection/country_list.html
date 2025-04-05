@@ -58,6 +58,10 @@
         z-index: 20;
         border-bottom: 1px solid rgba(0,0,0,.125);
     }
+    /* Table highlight effect for keyboard navigation */
+    .table-active {
+        background-color: rgba(58, 124, 165, 0.15) !important;
+    }
 </style>
 {% endblock %}
 
@@ -81,12 +85,17 @@
     <div class="card shadow-sm">
         <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
             <h3 class="h5 mb-0">Countries</h3>
-            <a href="{% url 'country_create' caliber.code %}" class="btn btn-sm btn-success">
-                <i class="bi bi-plus-circle"></i> Add New Country
-            </a>
+            <div class="d-flex align-items-center">
+                <p class="text-muted small mb-0 me-3">
+                    <i class="bi bi-keyboard"></i> Tip: Type any letter to jump to countries starting with that letter
+                </p>
+                <a href="{% url 'country_create' caliber.code %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle"></i> Add New Country
+                </a>
+            </div>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive" tabindex="0" id="countryTable">
                 <table class="table table-hover mb-0">
                     <thead class="sticky-header">
                         <tr>
@@ -124,7 +133,7 @@
                     </thead>
                     <tbody>
                         {% for country in countries %}
-                        <tr>
+                        <tr data-letter="{{ country.name|first|upper }}" id="letter-{{ country.name|first|upper }}">
                             <td>
                                 <a href="{% url 'country_detail' caliber.code country.id %}" class="country-name">
                                     {{ country.name }}
@@ -198,14 +207,60 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
     // Initialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        });
+        
+        // Keyboard navigation for country table
+        const tableContainer = document.getElementById('countryTable');
+        
+        if (tableContainer) {
+            // Set focus to the table container when the page loads
+            setTimeout(() => {
+                tableContainer.focus();
+            }, 500);
+            
+            // Listen for keydown events on the table
+            tableContainer.addEventListener('keydown', function(event) {
+                // Only process single letter key presses
+                if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
+                    const letter = event.key.toUpperCase();
+                    
+                    // Find the first row with that letter
+                    const targetRow = document.querySelector(`tr[data-letter="${letter}"]`);
+                    
+                    if (targetRow) {
+                        // Scroll to the row
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Briefly highlight the row for better visibility
+                        targetRow.classList.add('table-active');
+                        setTimeout(() => {
+                            targetRow.classList.remove('table-active');
+                        }, 1500);
+                        
+                        // Prevent the keypress from affecting other elements
+                        event.preventDefault();
+                    }
+                }
+            });
+            
+            // Add focus handler to show users they can type to navigate
+            tableContainer.addEventListener('focus', function() {
+                this.style.outline = '2px solid var(--theme-color)';
+            });
+            
+            tableContainer.addEventListener('blur', function() {
+                this.style.outline = 'none';
+            });
+        }
     });
 </script>
 {% endblock %}

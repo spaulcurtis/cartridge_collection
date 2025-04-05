@@ -121,6 +121,9 @@
     .box-table td {
     text-align: left;
     }
+    .table-active {
+        background-color: rgba(58, 124, 165, 0.15) !important;
+    }    
 </style>
 {% endblock %}
 
@@ -166,12 +169,17 @@
     <div class="card shadow-sm mb-4">
         <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
             <h3 class="h5 mb-0">Manufacturers</h3>
-            <a href="{% url 'manufacturer_create' caliber.code country.id %}" class="btn btn-sm btn-success">
-                <i class="bi bi-plus-circle"></i> Add Manufacturer
-            </a>
+            <div class="d-flex align-items-center">
+                <p class="text-muted small mb-0 me-3">
+                    <i class="bi bi-keyboard"></i> Tip: Type any letter to jump to manufacturers starting with that letter
+                </p>
+                <a href="{% url 'manufacturer_create' caliber.code country.id %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle"></i> Add Manufacturer
+                </a>
+            </div>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive" tabindex="0" id="manufacturerTable">
                 <table class="table table-hover mb-0">
                     <thead class="sticky-header">
                         <tr>
@@ -205,8 +213,8 @@
                     </thead>
                     <tbody>
                         {% for manufacturer in manufacturers %}
-                        <tr>
-                                                            <td>
+                        <tr data-letter="{{ manufacturer.code|first|upper }}" id="letter-{{ manufacturer.code|first|upper }}">
+                            <td>
                                 <a href="{% url 'manufacturer_detail' caliber.code manufacturer.id %}" class="manuf-code">
                                     {{ manufacturer.code }}
                                 </a>
@@ -347,7 +355,51 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        });
+        
+        // Keyboard navigation for manufacturers table
+        const tableContainer = document.getElementById('manufacturerTable');
+        
+        if (tableContainer) {
+            // Set focus to the table container when the page loads
+            setTimeout(() => {
+                tableContainer.focus();
+            }, 500);
+            
+            // Listen for keydown events on the table
+            tableContainer.addEventListener('keydown', function(event) {
+                // Only process single letter key presses
+                if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
+                    const letter = event.key.toUpperCase();
+                    
+                    // Find the first row with that letter
+                    const targetRow = document.querySelector(`tr[data-letter="${letter}"]`);
+                    
+                    if (targetRow) {
+                        // Scroll to the row
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Briefly highlight the row for better visibility
+                        targetRow.classList.add('table-active');
+                        setTimeout(() => {
+                            targetRow.classList.remove('table-active');
+                        }, 1500);
+                        
+                        // Prevent the keypress from affecting other elements
+                        event.preventDefault();
+                    }
+                }
+            });
+            
+            // Add focus handler to show users they can type to navigate
+            tableContainer.addEventListener('focus', function() {
+                this.style.outline = '2px solid var(--theme-color)';
+            });
+            
+            tableContainer.addEventListener('blur', function() {
+                this.style.outline = 'none';
+            });
+        }
     });
 </script>
 {% endblock %}

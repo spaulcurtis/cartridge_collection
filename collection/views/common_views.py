@@ -4,9 +4,10 @@ from django.db.models.functions import Upper, Substr
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.contrib import messages
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, CollectionInfo
+from ..models import Caliber, Country, Manufacturer, Headstamp, Load, LoadType, Date, Variation, Box, CollectionInfo
 
 def landing(request):
     """Landing page with caliber selection"""
@@ -15,12 +16,12 @@ def landing(request):
     
     # Add dummy artifact counts
     for caliber in calibers:
-        if caliber.code == '9mm':
-            caliber.artifact_count = 3240
-        elif caliber.code == '7.65mm':
-            caliber.artifact_count = 1856
+        if caliber.code == '9mmP':
+            caliber.artifact_count = 17240
+        elif caliber.code == '765mmP':
+            caliber.artifact_count = 56
         else:
-            caliber.artifact_count = 1200
+            caliber.artifact_count = 107
     
     # Get the global collection info
     collection_info = CollectionInfo.get_solo()
@@ -413,15 +414,6 @@ def headstamp_search(request, caliber_code):
     
     return render(request, 'collection/headstamp_search_results.html', context)
 
-
-def advanced_search(request, caliber_code):
-    caliber = get_object_or_404(Caliber, code=caliber_code)
-    return render(request, 'collection/placeholder.html', {
-        'caliber': caliber,
-        'title': 'Advanced Search',
-        'message': 'This page is under construction'
-    })
-
 def add_artifact(request, caliber_code):
     caliber = get_object_or_404(Caliber, code=caliber_code)
     return render(request, 'collection/placeholder.html', {
@@ -488,3 +480,115 @@ def support_view(request):
     context['all_calibers'] = Caliber.objects.all().order_by('order')
     
     return render(request, 'collection/support.html', context)
+
+def advanced_search(request, caliber_code):
+    """Advanced search view allowing filtering across multiple models."""
+    # Get the current caliber
+    caliber = get_object_or_404(Caliber, code=caliber_code)
+    
+    # Get all calibers for the dropdown
+    all_calibers = Caliber.objects.all().order_by('order', 'name')
+    
+    # Get available filtering options
+    countries = Country.objects.filter(caliber=caliber).order_by('name')
+    manufacturers = []
+    load_types = LoadType.objects.all().order_by('-is_common', 'display_name')
+    
+    # Store search parameters
+    search_params = {
+        'country_id': request.GET.get('country_id', ''),
+        'manufacturer_id': request.GET.get('manufacturer_id', ''),
+        'headstamp_code': request.GET.get('headstamp_code', ''),
+        'headstamp_match_type': request.GET.get('headstamp_match_type', 'contains'),
+        'headstamp_case_sensitive': request.GET.get('headstamp_case_sensitive', '') == 'on',
+        'load_type_id': request.GET.get('load_type_id', ''),
+        'notes': request.GET.get('notes', ''),
+    }
+    
+    # If a country is selected, get its manufacturers
+    if search_params['country_id']:
+        try:
+            country_id = int(search_params['country_id'])
+            manufacturers = Manufacturer.objects.filter(country_id=country_id).order_by('code')
+        except (ValueError, TypeError):
+            pass
+    
+    # Initialize search results
+    results = None
+    performed_search = any(
+        v for k, v in search_params.items() 
+        if k not in ['headstamp_match_type', 'headstamp_case_sensitive'] and v
+    )
+    
+    if performed_search:
+        # Start with all loads for this caliber
+        query = Load.objects.filter(
+            headstamp__manufacturer__country__caliber=caliber
+        ).select_related(
+            'headstamp', 
+            'headstamp__manufacturer',
+            'headstamp__manufacturer__country',
+            'load_type'
+        )
+        
+        # Apply filters based on search parameters
+        if search_params['country_id']:
+            try:
+                country_id = int(search_params['country_id'])
+                query = query.filter(headstamp__manufacturer__country_id=country_id)
+            except (ValueError, TypeError):
+                pass
+        
+        if search_params['manufacturer_id']:
+            try:
+                manufacturer_id = int(search_params['manufacturer_id'])
+                query = query.filter(headstamp__manufacturer_id=manufacturer_id)
+            except (ValueError, TypeError):
+                pass
+        
+        if search_params['headstamp_code']:
+            headstamp_code = search_params['headstamp_code']
+            
+            # Apply case sensitivity if requested
+            if not search_params['headstamp_case_sensitive']:
+                headstamp_code = headstamp_code.lower()
+                if search_params['headstamp_match_type'] == 'startswith':
+                    query = query.filter(headstamp__code__istartswith=headstamp_code)
+                else:  # contains
+                    query = query.filter(headstamp__code__icontains=headstamp_code)
+            else:
+                if search_params['headstamp_match_type'] == 'startswith':
+                    query = query.filter(headstamp__code__startswith=headstamp_code)
+                else:  # contains
+                    query = query.filter(headstamp__code__contains=headstamp_code)
+        
+        if search_params['load_type_id']:
+            try:
+                load_type_id = int(search_params['load_type_id'])
+                query = query.filter(load_type_id=load_type_id)
+            except (ValueError, TypeError):
+                pass
+        
+        if search_params['notes']:
+            query = query.filter(note__icontains=search_params['notes'])
+        
+        # Order by country, manufacturer code, headstamp code, cart_id
+        results = query.order_by(
+            'headstamp__manufacturer__country__name',
+            'headstamp__manufacturer__code',
+            'headstamp__code',
+            'cart_id'
+        )
+    
+    context = {
+        'caliber': caliber,
+        'all_calibers': all_calibers,
+        'countries': countries,
+        'manufacturers': manufacturers,
+        'load_types': load_types,
+        'search_params': search_params,
+        'results': results,
+        'performed_search': performed_search,
+    }
+    
+    return render(request, 'collection/advanced_search.html', context)
