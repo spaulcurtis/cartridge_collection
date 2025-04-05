@@ -168,8 +168,8 @@ def dashboard(request, caliber_code):
         display_text=F('code'),
         parent_name=F('manufacturer__code')
     ).values(
-        'pk', 'item_type', 'display_text', 'parent_name', 'created_at'
-    ).order_by('-created_at')[:5]
+        'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
+    ).order_by('-updated_at')[:5]
     
     # Get recent loads with type indicator
     recent_loads = Load.objects.filter(
@@ -179,8 +179,8 @@ def dashboard(request, caliber_code):
         display_text=F('cart_id'),
         parent_name=F('headstamp__code')
     ).values(
-        'pk', 'item_type', 'display_text', 'parent_name', 'created_at'
-    ).order_by('-created_at')[:5]
+        'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
+    ).order_by('-updated_at')[:5]
     
     # Get recent dates with type indicator
     recent_dates = Date.objects.filter(
@@ -190,8 +190,8 @@ def dashboard(request, caliber_code):
         display_text=F('cart_id'),
         parent_name=F('load__cart_id')
     ).values(
-        'pk', 'item_type', 'display_text', 'parent_name', 'created_at'
-    ).order_by('-created_at')[:5]
+        'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
+    ).order_by('-updated_at')[:5]
     
     # Get recent boxes
     from django.contrib.contenttypes.models import ContentType
@@ -228,13 +228,13 @@ def dashboard(request, caliber_code):
         item_type=Value('box'),
         display_text=F('bid'),
     ).values(
-        'pk', 'item_type', 'display_text', 'created_at'
-    ).order_by('-created_at')[:5]
+        'pk', 'item_type', 'display_text', 'updated_at'
+    ).order_by('-updated_at')[:5]
     
     # Combine all recent activities
     recent_activities = list(recent_headstamps) + list(recent_loads) + list(recent_dates) + list(recent_boxes)
-    # Sort by created_at in descending order (most recent first)
-    recent_activities.sort(key=lambda x: x['created_at'], reverse=True)
+    # Sort by updated_at in descending order (most recent first)
+    recent_activities.sort(key=lambda x: x['updated_at'], reverse=True)
     # Limit to 15 most recent activities
     recent_activities = recent_activities[:15]
     
