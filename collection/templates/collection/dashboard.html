@@ -336,13 +336,21 @@
                 <p class="text-muted mb-0">Import records into collection</p>
             </a>
         </div>
+        
+        <!-- Modified Advanced Search card for dashboard.html -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'advanced_search' caliber.code %}" class="action-card d-block">
+            <div class="action-card">
                 <i class="bi bi-filter-circle action-icon"></i>
                 <h3 class="h5">Advanced Search</h3>
-                <p class="text-muted mb-0">Filter collection by criteria</p>
-            </a>
-        </div>
+                <div class="mt-2">
+                    <a href="{% url 'manufacturer_search' caliber.code %}" class="d-block mb-1">Manufacturer Search</a>
+                    <a href="{% url 'headstamp_search' caliber.code %}" class="d-block mb-1">Headstamp Search</a>
+                    <a href="{% url 'load_search' caliber.code %}" class="d-block mb-1">Load Search</a>
+                    <a href="{% url 'box_search' caliber.code %}" class="d-block mb-1">Box Search</a>
+                </div>
+            </div>
+        </div>        
+
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{% url 'import_images' caliber.code %}" class="action-card d-block">
                 <i class="bi bi-camera action-icon"></i>
