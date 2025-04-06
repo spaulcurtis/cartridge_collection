@@ -59,17 +59,13 @@
 
 {% block app_content %}
 <div class="container py-4">
-    <!-- Breadcrumb navigation -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Advanced Search</li>
-        </ol>
-    </nav>
+
+    <!-- Advanced Search Navigation -->
+    {% include 'collection/includes/search_navigation.html' %}
 
     <div class="row mb-4">
         <div class="col">
-            <h2>{{ caliber.name }} - Advanced Search</h2>
+            <h2>{{ caliber.name }} - Load Search</h2>
             <p>Search for items across multiple criteria in the {{ caliber.name }} collection</p>
         </div>
     </div>
@@ -80,7 +76,7 @@
             <h3 class="h5 mb-0">Search Filters</h3>
         </div>
         <div class="card-body">
-            <form action="{% url 'advanced_search' caliber.code %}" method="get" id="advanced-search-form" class="search-form">
+            <form action="{% url 'load_search' caliber.code %}" method="get" id="advanced-search-form" class="search-form">
                 <div class="row">
                     <!-- Organizational hierarchy filters -->
                     <div class="col-md-6">
@@ -180,11 +176,11 @@
                 <h6 class="mb-2">Search Parameters:</h6>
                 <ul class="mb-0">
                     {% if search_params.country_id %}
-                    <li>Country: {{ countries|dictsort:"id"|dictsortreversed:"id"|first }}</li>
+                    <li>Country: {{ selected_country_name }}</li>
                     {% endif %}
                     
                     {% if search_params.manufacturer_id %}
-                    <li>Manufacturer: {{ manufacturers|dictsort:"id"|dictsortreversed:"id"|first }}</li>
+                    <li>Manufacturer: {{ selected_manufacturer_name }}</li>
                     {% endif %}
                     
                     {% if search_params.headstamp_code %}
@@ -194,7 +190,7 @@
                     {% endif %}
                     
                     {% if search_params.load_type_id %}
-                    <li>Load type: {{ load_types|dictsort:"id"|dictsortreversed:"id"|first }}</li>
+                    <li>Load type: {{ selected_load_type_name }}</li>
                     {% endif %}
                     
                     {% if search_params.notes %}

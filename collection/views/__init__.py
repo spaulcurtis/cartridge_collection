@@ -1,8 +1,11 @@
 from .common_views import (
-    landing, dashboard, record_search, headstamp_search, advanced_search, add_artifact, 
-    import_images, support_view, user_guide_view, advanced_search
+    landing, dashboard, add_artifact, import_images, support_view, user_guide_view, 
 )
 
+from .search_views import (
+    record_search, headstamp_search, load_search, manufacturer_search, 
+    headstamp_header_search, headstamp_search
+)
 from .country_views import (
     country_list, country_detail, country_create, country_delete, country_update
 )

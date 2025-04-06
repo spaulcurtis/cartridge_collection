@@ -73,11 +73,16 @@ urlpatterns = [
     path('<str:caliber_code>/dates/<int:pk>/', views.country_list, name='date_detail'),
     path('<str:caliber_code>/variations/<int:pk>/', views.country_list, name='variation_detail'),
     
-    # Search functionality (placeholders)
+    # Search functionality
     path('<str:caliber_code>/search/', views.record_search, name='record_search'),
-    path('<str:caliber_code>/headstamp-search/', views.headstamp_search, name='headstamp_search'),
-    path('<str:caliber_code>/advanced-search/', views.advanced_search, name='advanced_search'),
+    path('<str:caliber_code>/headstamp-header-search/', views.headstamp_header_search, name='headstamp_header_search'),
     
+    # Advanced search URLs for different entity types
+    path('<str:caliber_code>/search/manufacturer/', views.manufacturer_search, name='manufacturer_search'),
+    path('<str:caliber_code>/search/headstamp/', views.headstamp_search, name='headstamp_search'), 
+    path('<str:caliber_code>/search/load/', views.load_search, name='load_search'),
+    path('<str:caliber_code>/search/box/', views.load_search, name='box_search'),
+
     # Add new items (placeholders)
     path('<str:caliber_code>/add-artifact/', views.add_artifact, name='add_artifact'),
     path('<str:caliber_code>/import_records/', views.import_records, name='import_records'),

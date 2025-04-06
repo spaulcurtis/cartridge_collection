@@ -1,0 +1,292 @@
+{% extends 'collection/app_base.html' %}
+
+{% block title %}{{ caliber.name }} - Manufacturer Search{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Filter form styles */
+    .search-form {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-section {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: var(--theme-super-light);
+        border-radius: 0.5rem;
+    }
+    
+    .filter-section h5 {
+        color: var(--theme-color);
+        margin-bottom: 1rem;
+    }
+    
+    /* Results table styles */
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    }
+    
+    .table-active {
+        background-color: rgba(58, 124, 165, 0.15) !important;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="container py-4">
+
+    <!-- Advanced Search Navigation -->
+    {% include 'collection/includes/search_navigation.html' %}
+
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ caliber.name }} - Manufacturer Search</h2>
+            <p>Search for manufacturers across multiple criteria in the {{ caliber.name }} collection</p>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card dashboard-card mb-4">
+        <div class="card-header">
+            <h3 class="h5 mb-0">Search Filters</h3>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'manufacturer_search' caliber.code %}" method="get" id="manufacturer-search-form" class="search-form">
+                <div class="row">
+                    <!-- Organizational filters -->
+                    <div class="col-md-6">
+                        <div class="filter-section">
+                            <h5><i class="bi bi-globe-americas"></i> Country Filter</h5>
+
+                            <div class="mb-3">
+                                <label for="country_id" class="form-label">Country:</label>
+                                <select id="country_id" name="country_id" class="form-select">
+                                    <option value="">All Countries</option>
+                                    {% for country in countries %}
+                                    <option value="{{ country.id }}" {% if search_params.country_id == country.id|stringformat:"i" %}selected{% endif %}>
+                                        {{ country.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manufacturer property filters -->
+                    <div class="col-md-6">
+                        <div class="filter-section">
+                            <h5><i class="bi bi-building"></i> Manufacturer Properties</h5>
+
+                            <div class="mb-3">
+                                <label for="code" class="form-label">Manufacturer Code:</label>
+                                <input type="text" id="code" name="code" class="form-control" 
+                                       value="{{ search_params.code }}" placeholder="Enter manufacturer code...">
+                                
+                                <div class="mt-2 d-flex align-items-center">
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_contains" 
+                                               value="contains" {% if search_params.code_match_type != 'startswith' %}checked{% endif %}>
+                                        <label class="form-check-label" for="code_match_contains">Contains</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_startswith" 
+                                               value="startswith" {% if search_params.code_match_type == 'startswith' %}checked{% endif %}>
+                                        <label class="form-check-label" for="code_match_startswith">Starts with</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="code_case_sensitive" id="code_case_sensitive" 
+                                           {% if search_params.code_case_sensitive %}checked{% endif %}>
+                                    <label class="form-check-label" for="code_case_sensitive">Case sensitive</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Manufacturer Name:</label>
+                                <input type="text" id="name" name="name" class="form-control" 
+                                       value="{{ search_params.name }}" placeholder="Search in manufacturer name...">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes Contains:</label>
+                                <input type="text" id="notes" name="notes" class="form-control" 
+                                       value="{{ search_params.notes }}" placeholder="Search in notes...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                        <i class="bi bi-x-circle"></i> Clear Filters
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Search Summary -->
+            {% if performed_search %}
+            <div class="alert alert-info">
+                <h6 class="mb-2">Search Parameters:</h6>
+                <ul class="mb-0">
+                    {% if search_params.country_id %}
+                    <li>Country: {{ selected_country_name }}</li>
+                    {% endif %}
+                    
+                    {% if search_params.code %}
+                    <li>Code {{ search_params.code_match_type }} "{{ search_params.code }}" 
+                        ({% if search_params.code_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
+                    </li>
+                    {% endif %}
+                    
+                    {% if search_params.name %}
+                    <li>Name contains: "{{ search_params.name }}"</li>
+                    {% endif %}
+                    
+                    {% if search_params.notes %}
+                    <li>Notes containing: "{{ search_params.notes }}"</li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    {% if performed_search %}
+    <div class="card dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0">Search Results</h3>
+            <div class="d-flex align-items-center">
+                <p class="text-muted small mb-0 me-3">
+                    <i class="bi bi-keyboard"></i> Tip: Type any letter to jump to manufacturers starting with that letter
+                </p>
+                <span class="badge bg-primary">{{ results.count }} result{{ results.count|pluralize }}</span>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            {% if results %}
+            <div class="table-responsive" tabindex="0" id="searchResultsTable">
+                <table class="table table-hover mb-0">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Country</th>
+                            <th>Headstamps</th>
+                            <th>Loads</th>
+                            <th>Boxes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manufacturer in results %}
+                        <tr data-letter="{{ manufacturer.code|first|upper }}" id="letter-{{ manufacturer.code|first|upper }}">
+                            <td><a href="{% url 'manufacturer_detail' caliber.code manufacturer.pk %}">{{ manufacturer.code }}</a></td>
+                            <td>{{ manufacturer.name|default:"-" }}</td>
+                            <td>{{ manufacturer.country.name }}</td>
+                            <td>{{ manufacturer.headstamp_count }}</td>
+                            <td>{{ manufacturer.load_count }}</td>
+                            <td>{{ manufacturer.box_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-search text-muted" style="font-size: 2rem;"></i>
+                <h4 class="mt-3">No results found</h4>
+                <p class="text-muted">Try adjusting your search criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Keyboard navigation for search results table
+        const tableContainer = document.getElementById('searchResultsTable');
+        
+        if (tableContainer) {
+            // Set focus to the table container when the page loads
+            setTimeout(() => {
+                tableContainer.focus();
+            }, 500);
+            
+            // Listen for keydown events on the table
+            tableContainer.addEventListener('keydown', function(event) {
+                // Only process single letter key presses
+                if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
+                    const letter = event.key.toUpperCase();
+                    
+                    // Find the first row with that letter
+                    const targetRow = document.querySelector(`tr[data-letter="${letter}"]`);
+                    
+                    if (targetRow) {
+                        // Scroll to the row
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Briefly highlight the row for better visibility
+                        targetRow.classList.add('table-active');
+                        setTimeout(() => {
+                            targetRow.classList.remove('table-active');
+                        }, 1500);
+                        
+                        // Prevent the keypress from affecting other elements
+                        event.preventDefault();
+                    }
+                }
+            });
+            
+            // Add focus handler to show users they can type to navigate
+            tableContainer.addEventListener('focus', function() {
+                this.style.outline = '2px solid var(--theme-color)';
+            });
+            
+            tableContainer.addEventListener('blur', function() {
+                this.style.outline = 'none';
+            });
+        }
+    });
+    
+    // Clear all search filters
+    function clearSearch() {
+        // Reset all form fields
+        document.getElementById('country_id').value = '';
+        document.getElementById('code').value = '';
+        document.getElementById('code_match_contains').checked = true;
+        document.getElementById('code_case_sensitive').checked = false;
+        document.getElementById('name').value = '';
+        document.getElementById('notes').value = '';
+        
+        // Submit the form
+        document.getElementById('manufacturer-search-form').submit();
+    }
+</script>
+{% endblock %}
