@@ -41,6 +41,27 @@
     .table-active {
         background-color: rgba(58, 124, 165, 0.15) !important;
     }
+    
+    .sort-link {
+        color: inherit;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .sort-link:hover {
+        color: var(--theme-color);
+    }
+    
+    .sort-icon {
+        margin-left: 5px;
+        font-size: 0.85em;
+    }
+    
+    .sort-active {
+        color: var(--theme-color);
+    }
 </style>
 {% endblock %}
 
@@ -97,20 +118,19 @@
                                 <div class="mt-2 d-flex align-items-center">
                                     <div class="form-check me-3">
                                         <input class="form-check-input" type="radio" name="code_match_type" id="code_match_contains" 
-                                               value="contains" {% if search_params.code_match_type != 'startswith' %}checked{% endif %}>
+                                               value="contains" {% if search_params.code_match_type == 'contains' %}checked{% endif %}>
                                         <label class="form-check-label" for="code_match_contains">Contains</label>
                                     </div>
-                                    <div class="form-check">
+                                    <div class="form-check me-3">
                                         <input class="form-check-input" type="radio" name="code_match_type" id="code_match_startswith" 
                                                value="startswith" {% if search_params.code_match_type == 'startswith' %}checked{% endif %}>
                                         <label class="form-check-label" for="code_match_startswith">Starts with</label>
                                     </div>
-                                </div>
-                                
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" name="code_case_sensitive" id="code_case_sensitive" 
-                                           {% if search_params.code_case_sensitive %}checked{% endif %}>
-                                    <label class="form-check-label" for="code_case_sensitive">Case sensitive</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_exactly" 
+                                               value="is_exactly" {% if search_params.code_match_type == 'is_exactly' %}checked{% endif %}>
+                                        <label class="form-check-label" for="code_match_exactly">Is exactly (case sensitive)</label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -118,6 +138,19 @@
                                 <label for="name" class="form-label">Manufacturer Name:</label>
                                 <input type="text" id="name" name="name" class="form-control" 
                                        value="{{ search_params.name }}" placeholder="Search in manufacturer name...">
+                                
+                                <div class="mt-2 d-flex align-items-center">
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input" type="radio" name="name_match_type" id="name_match_contains" 
+                                               value="contains" {% if search_params.name_match_type != 'startswith' %}checked{% endif %}>
+                                        <label class="form-check-label" for="name_match_contains">Contains</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="name_match_type" id="name_match_startswith" 
+                                               value="startswith" {% if search_params.name_match_type == 'startswith' %}checked{% endif %}>
+                                        <label class="form-check-label" for="name_match_startswith">Starts with</label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -125,9 +158,29 @@
                                 <input type="text" id="notes" name="notes" class="form-control" 
                                        value="{{ search_params.notes }}" placeholder="Search in notes...">
                             </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Search Operator:</label>
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input" type="radio" name="search_operator" id="search_operator_or" 
+                                               value="or" {% if search_params.search_operator != 'and' %}checked{% endif %}>
+                                        <label class="form-check-label" for="search_operator_or">OR (any property matches)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="search_operator" id="search_operator_and" 
+                                               value="and" {% if search_params.search_operator == 'and' %}checked{% endif %}>
+                                        <label class="form-check-label" for="search_operator_and">AND (all properties match)</label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Sort parameters (hidden, updated by JavaScript) -->
+                <input type="hidden" name="sort_by" id="sort_by" value="{{ search_params.sort_by|default:'code' }}">
+                <input type="hidden" name="sort_dir" id="sort_dir" value="{{ search_params.sort_dir|default:'asc' }}">
                 
                 <div class="d-flex justify-content-between mt-3">
                     <button type="submit" class="btn btn-primary">
@@ -149,17 +202,35 @@
                     {% endif %}
                     
                     {% if search_params.code %}
-                    <li>Code {{ search_params.code_match_type }} "{{ search_params.code }}" 
-                        ({% if search_params.code_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
+                    <li>Code 
+                        {% if search_params.code_match_type == 'contains' %}
+                            contains
+                        {% elif search_params.code_match_type == 'startswith' %}
+                            starts with
+                        {% elif search_params.code_match_type == 'is_exactly' %}
+                            is exactly (case sensitive)
+                        {% endif %}
+                        "{{ search_params.code }}"
                     </li>
                     {% endif %}
                     
                     {% if search_params.name %}
-                    <li>Name contains: "{{ search_params.name }}"</li>
+                    <li>Name 
+                        {% if search_params.name_match_type == 'contains' %}
+                            contains
+                        {% elif search_params.name_match_type == 'startswith' %}
+                            starts with
+                        {% endif %}
+                        "{{ search_params.name }}"
+                    </li>
                     {% endif %}
                     
                     {% if search_params.notes %}
                     <li>Notes containing: "{{ search_params.notes }}"</li>
+                    {% endif %}
+                    
+                    {% if search_params.code or search_params.name or search_params.notes %}
+                    <li>Search operator: <strong>{{ search_params.search_operator|upper }}</strong></li>
                     {% endif %}
                 </ul>
             </div>
@@ -186,12 +257,90 @@
                 <table class="table table-hover mb-0">
                     <thead class="sticky-header">
                         <tr>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Country</th>
-                            <th>Headstamps</th>
-                            <th>Loads</th>
-                            <th>Boxes</th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="code">
+                                    Code
+                                    {% if search_params.sort_by == 'code' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-alpha-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="name">
+                                    Name
+                                    {% if search_params.sort_by == 'name' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-alpha-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="country">
+                                    Country
+                                    {% if search_params.sort_by == 'country' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-alpha-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="headstamps">
+                                    Headstamps
+                                    {% if search_params.sort_by == 'headstamps' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-numeric-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-numeric-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="loads">
+                                    Loads
+                                    {% if search_params.sort_by == 'loads' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-numeric-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-numeric-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="#" class="sort-link" data-sort="boxes">
+                                    Boxes
+                                    {% if search_params.sort_by == 'boxes' %}
+                                        {% if search_params.sort_dir == 'asc' %}
+                                            <i class="bi bi-sort-numeric-down sort-icon sort-active"></i>
+                                        {% else %}
+                                            <i class="bi bi-sort-numeric-up sort-icon sort-active"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,6 +377,28 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Set up sort links
+        document.querySelectorAll('.sort-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const sortField = this.getAttribute('data-sort');
+                const currentSortField = document.getElementById('sort_by').value;
+                const currentSortDir = document.getElementById('sort_dir').value;
+                
+                // Toggle direction if clicking on the same field
+                if (sortField === currentSortField) {
+                    document.getElementById('sort_dir').value = (currentSortDir === 'asc') ? 'desc' : 'asc';
+                } else {
+                    document.getElementById('sort_by').value = sortField;
+                    document.getElementById('sort_dir').value = 'asc'; // Default to ascending for new sort field
+                }
+                
+                // Submit the form
+                document.getElementById('manufacturer-search-form').submit();
+            });
         });
         
         // Keyboard navigation for search results table
@@ -281,9 +452,14 @@
         document.getElementById('country_id').value = '';
         document.getElementById('code').value = '';
         document.getElementById('code_match_contains').checked = true;
-        document.getElementById('code_case_sensitive').checked = false;
         document.getElementById('name').value = '';
+        document.getElementById('name_match_contains').checked = true;
         document.getElementById('notes').value = '';
+        document.getElementById('search_operator_or').checked = true;
+        
+        // Reset sort parameters
+        document.getElementById('sort_by').value = 'code';
+        document.getElementById('sort_dir').value = 'asc';
         
         // Submit the form
         document.getElementById('manufacturer-search-form').submit();

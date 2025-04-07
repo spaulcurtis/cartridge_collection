@@ -1,6 +1,6 @@
 {% extends 'collection/app_base.html' %}
 
-{% block title %}{{ caliber.name }} - Load Search{% endblock %}
+{% block title %}{{ caliber.name }} - Box Search{% endblock %}
 
 {% block extra_css %}
 {{ block.super }}
@@ -75,6 +75,45 @@
     .sort-active {
         color: var(--theme-color);
     }
+    
+    .parent-tag {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 0.5rem;
+    }
+    
+    .parent-tag-country {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .parent-tag-manufacturer {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .parent-tag-headstamp {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .parent-tag-load {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .parent-tag-date {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+    
+    .parent-tag-variation {
+        background-color: #cce5ff;
+        color: #004085;
+    }
 </style>
 {% endblock %}
 
@@ -86,8 +125,8 @@
 
     <div class="row mb-4">
         <div class="col">
-            <h2>{{ caliber.name }} - Load Search</h2>
-            <p>Search for loads across multiple criteria in the {{ caliber.name }} collection</p>
+            <h2>{{ caliber.name }} - Box Search</h2>
+            <p>Search for boxes across multiple criteria in the {{ caliber.name }} collection</p>
         </div>
     </div>
 
@@ -97,7 +136,7 @@
             <h3 class="h5 mb-0">Search Filters</h3>
         </div>
         <div class="card-body">
-            <form action="{% url 'load_search' caliber.code %}" method="get" id="load-search-form" class="search-form">
+            <form action="{% url 'box_search' caliber.code %}" method="get" id="box-search-form" class="search-form">
                 <div class="row">
                     <!-- Organizational hierarchy filters -->
                     <div class="col-md-6">
@@ -154,96 +193,32 @@
                         </div>
                     </div>
                     
-                    <!-- Load property filters -->
+                    <!-- Box property filters -->
                     <div class="col-md-6">
                         <div class="filter-section">
-                            <h5><i class="bi bi-battery"></i> Load Properties</h5>
+                            <h5><i class="bi bi-box-seam"></i> Box Properties</h5>
 
                             <div class="mb-3">
-                                <label for="load_type_id" class="form-label">Load Type:</label>
-                                <select id="load_type_id" name="load_type_id" class="form-select">
-                                    <option value="">Any Load Type</option>
-                                    {% for load_type in load_types %}
-                                    <option value="{{ load_type.id }}" {% if search_params.load_type_id == load_type.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ load_type.display_name }}
+                                <label for="parent_type" class="form-label">Parent Record Type:</label>
+                                <select id="parent_type" name="parent_type" class="form-select">
+                                    {% for type_id, type_name in parent_type_choices %}
+                                    <option value="{{ type_id }}" {% if search_params.parent_type == type_id|stringformat:"i" %}selected{% endif %}>
+                                        {{ type_name }}
                                     </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="bullet_id" class="form-label">Bullet Type:</label>
-                                <select id="bullet_id" name="bullet_id" class="form-select">
-                                    <option value="">Any Bullet Type</option>
-                                    {% for bullet in bullet_types %}
-                                    <option value="{{ bullet.id }}" {% if search_params.bullet_id == bullet.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ bullet.display_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Magnetic Bullet:</label>
-                                <div class="d-flex">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="is_magnetic" id="is_magnetic_any" 
-                                               value="" {% if not search_params.is_magnetic %}checked{% endif %}>
-                                        <label class="form-check-label" for="is_magnetic_any">Any</label>
-                                    </div>
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="is_magnetic" id="is_magnetic_yes" 
-                                               value="true" {% if search_params.is_magnetic == 'true' %}checked{% endif %}>
-                                        <label class="form-check-label" for="is_magnetic_yes">Yes</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="is_magnetic" id="is_magnetic_no" 
-                                               value="false" {% if search_params.is_magnetic == 'false' %}checked{% endif %}>
-                                        <label class="form-check-label" for="is_magnetic_no">No</label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="case_type_id" class="form-label">Case Type:</label>
-                                <select id="case_type_id" name="case_type_id" class="form-select">
-                                    <option value="">Any Case Type</option>
-                                    {% for case_type in case_types %}
-                                    <option value="{{ case_type.id }}" {% if search_params.case_type_id == case_type.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ case_type.display_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="primer_id" class="form-label">Primer Type:</label>
-                                <select id="primer_id" name="primer_id" class="form-select">
-                                    <option value="">Any Primer Type</option>
-                                    {% for primer in primer_types %}
-                                    <option value="{{ primer.id }}" {% if search_params.primer_id == primer.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ primer.display_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="pa_color_id" class="form-label">Primer Annulus Color:</label>
-                                <select id="pa_color_id" name="pa_color_id" class="form-select">
-                                    <option value="">Any Color</option>
-                                    {% for color in pa_colors %}
-                                    <option value="{{ color.id }}" {% if search_params.pa_color_id == color.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ color.display_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
+                                <label for="location" class="form-label">Location:</label>
+                                <input type="text" id="location" name="location" class="form-control" 
+                                       value="{{ search_params.location }}" placeholder="Search in box location...">
                             </div>
                             
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description:</label>
                                 <input type="text" id="description" name="description" class="form-control" 
-                                       value="{{ search_params.description }}" placeholder="Search in description...">
+                                       value="{{ search_params.description }}" placeholder="Search in box description...">
                                 
                                 <div class="mt-2 d-flex align-items-center">
                                     <div class="form-check me-3">
@@ -285,7 +260,7 @@
                 </div>
                 
                 <!-- Sort parameters (hidden, updated by JavaScript) -->
-                <input type="hidden" name="sort_by" id="sort_by" value="{{ search_params.sort_by|default:'cart_id' }}">
+                <input type="hidden" name="sort_by" id="sort_by" value="{{ search_params.sort_by|default:'bid' }}">
                 <input type="hidden" name="sort_dir" id="sort_dir" value="{{ search_params.sort_dir|default:'asc' }}">
                 
                 <div class="d-flex justify-content-between mt-3">
@@ -324,28 +299,12 @@
                     </li>
                     {% endif %}
                     
-                    {% if search_params.load_type_id %}
-                    <li>Load type: {{ selected_load_type_name }}</li>
+                    {% if search_params.parent_type %}
+                    <li>Parent record type: {{ selected_parent_type_name }}</li>
                     {% endif %}
                     
-                    {% if search_params.bullet_id %}
-                    <li>Bullet type: {{ selected_bullet_name }}</li>
-                    {% endif %}
-                    
-                    {% if search_params.is_magnetic %}
-                    <li>Magnetic bullet: {% if search_params.is_magnetic == 'true' %}Yes{% else %}No{% endif %}</li>
-                    {% endif %}
-                    
-                    {% if search_params.case_type_id %}
-                    <li>Case type: {{ selected_case_type_name }}</li>
-                    {% endif %}
-                    
-                    {% if search_params.primer_id %}
-                    <li>Primer type: {{ selected_primer_name }}</li>
-                    {% endif %}
-                    
-                    {% if search_params.pa_color_id %}
-                    <li>Primer annulus color: {{ selected_pa_color_name }}</li>
+                    {% if search_params.location %}
+                    <li>Location contains: "{{ search_params.location }}"</li>
                     {% endif %}
                     
                     {% if search_params.description %}
@@ -363,7 +322,7 @@
                     <li>Notes containing: "{{ search_params.notes }}"</li>
                     {% endif %}
                     
-                    {% if search_params.country_id or search_params.manufacturer_id or search_params.headstamp_code or search_params.load_type_id or search_params.bullet_id or search_params.is_magnetic or search_params.case_type_id or search_params.primer_id or search_params.pa_color_id or search_params.description or search_params.notes %}
+                    {% if search_params.country_id or search_params.manufacturer_id or search_params.headstamp_code or search_params.parent_type or search_params.location or search_params.description or search_params.notes %}
                     <li>Search operator: <strong>{{ search_params.search_operator|upper }}</strong></li>
                     {% endif %}
                 </ul>
@@ -392,9 +351,9 @@
                     <thead class="sticky-header">
                         <tr>
                             <th>
-                                <a href="#" class="sort-link" data-sort="cart_id">
-                                    Load ID
-                                    {% if search_params.sort_by == 'cart_id' %}
+                                <a href="#" class="sort-link" data-sort="bid">
+                                    Box ID
+                                    {% if search_params.sort_by == 'bid' %}
                                         {% if search_params.sort_dir == 'asc' %}
                                             <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
                                         {% else %}
@@ -406,9 +365,9 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="#" class="sort-link" data-sort="headstamp">
-                                    Headstamp
-                                    {% if search_params.sort_by == 'headstamp' %}
+                                <a href="#" class="sort-link" data-sort="parent_type">
+                                    Parent Type
+                                    {% if search_params.sort_by == 'parent_type' %}
                                         {% if search_params.sort_dir == 'asc' %}
                                             <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
                                         {% else %}
@@ -420,9 +379,9 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="#" class="sort-link" data-sort="manufacturer">
-                                    Manufacturer
-                                    {% if search_params.sort_by == 'manufacturer' %}
+                                <a href="#" class="sort-link" data-sort="parent">
+                                    Parent
+                                    {% if search_params.sort_by == 'parent' %}
                                         {% if search_params.sort_dir == 'asc' %}
                                             <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
                                         {% else %}
@@ -434,9 +393,9 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="#" class="sort-link" data-sort="country">
-                                    Country
-                                    {% if search_params.sort_by == 'country' %}
+                                <a href="#" class="sort-link" data-sort="description">
+                                    Description
+                                    {% if search_params.sort_by == 'description' %}
                                         {% if search_params.sort_dir == 'asc' %}
                                             <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
                                         {% else %}
@@ -448,9 +407,9 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="#" class="sort-link" data-sort="load_type">
-                                    Load Type
-                                    {% if search_params.sort_by == 'load_type' %}
+                                <a href="#" class="sort-link" data-sort="location">
+                                    Location
+                                    {% if search_params.sort_by == 'location' %}
                                         {% if search_params.sort_dir == 'asc' %}
                                             <i class="bi bi-sort-alpha-down sort-icon sort-active"></i>
                                         {% else %}
@@ -479,33 +438,29 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for load in results %}
-                        <tr data-letter="{{ load.cart_id|first|upper }}" id="letter-{{ load.cart_id|first|upper }}">
-                            <td><a href="{% url 'load_detail' caliber.code load.pk %}">{{ load.cart_id }}</a></td>
+                        {% for box in results %}
+                        <tr data-letter="{{ box.bid|first|upper }}" id="letter-{{ box.bid|first|upper }}">
+                            <td><a href="{% url 'box_detail' caliber.code box.pk %}">{{ box.bid }}</a></td>
                             <td>
-                                <a href="{% url 'headstamp_detail' caliber.code load.headstamp.pk %}">
-                                    {{ load.headstamp.code }}
-                                </a>
+                                <span class="parent-tag parent-tag-{{ box.parent_type_display|lower }}">
+                                    {{ box.parent_type_display|title }}
+                                </span>
                             </td>
+                            <td>{{ box.parent_display }}</td>
+                            <td>{{ box.description|default:"-"|truncatechars:50 }}</td>
+                            <td>{{ box.location|default:"-" }}</td>
                             <td>
-                                <a href="{% url 'manufacturer_detail' caliber.code load.headstamp.manufacturer.pk %}">
-                                    {{ load.headstamp.manufacturer.code }}
-                                </a>
-                            </td>
-                            <td>{{ load.headstamp.manufacturer.country.name }}</td>
-                            <td>{{ load.load_type.display_name }}</td>
-                            <td>
-                                {% if load.cc == 1 %}
+                                {% if box.cc == 1 %}
                                 <span class="badge-cc badge-cc-collection">in collection</span>
-                                {% elif load.cc %}
-                                CC {{ load.cc }}
+                                {% elif box.cc %}
+                                CC {{ box.cc }}
                                 {% else %}
                                 -
                                 {% endif %}
                             </td>
                             <td>
-                                {% if load.image %}
-                                <a href="{% url 'load_detail' caliber.code load.pk %}">
+                                {% if box.image %}
+                                <a href="{% url 'box_detail' caliber.code box.pk %}">
                                     <i class="bi bi-camera-fill text-success"></i>
                                 </a>
                                 {% else %}
@@ -557,7 +512,7 @@
                 }
                 
                 // Submit the form
-                document.getElementById('load-search-form').submit();
+                document.getElementById('box-search-form').submit();
             });
         });
         
@@ -614,23 +569,19 @@
         document.getElementById('manufacturer_id').disabled = true;
         document.getElementById('headstamp_code').value = '';
         document.getElementById('headstamp_match_contains').checked = true;
-        document.getElementById('load_type_id').value = '';
-        document.getElementById('bullet_id').value = '';
-        document.getElementById('is_magnetic_any').checked = true;
-        document.getElementById('case_type_id').value = '';
-        document.getElementById('primer_id').value = '';
-        document.getElementById('pa_color_id').value = '';
+        document.getElementById('parent_type').selectedIndex = 0;
+        document.getElementById('location').value = '';
         document.getElementById('description').value = '';
         document.getElementById('description_match_contains').checked = true;
         document.getElementById('notes').value = '';
         document.getElementById('search_operator_or').checked = true;
         
         // Reset sort parameters
-        document.getElementById('sort_by').value = 'cart_id';
+        document.getElementById('sort_by').value = 'bid';
         document.getElementById('sort_dir').value = 'asc';
         
         // Submit the form
-        document.getElementById('load-search-form').submit();
+        document.getElementById('box-search-form').submit();
     }
     
     // Update manufacturers dropdown when country changes
@@ -647,7 +598,7 @@
         }
         
         // Submit the form to reload the page with the new country
-        document.getElementById('load-search-form').submit();
+        document.getElementById('box-search-form').submit();
     }
 </script>
 {% endblock %}
