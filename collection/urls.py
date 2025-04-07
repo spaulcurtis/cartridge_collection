@@ -81,7 +81,7 @@ urlpatterns = [
     path('<str:caliber_code>/search/manufacturer/', views.manufacturer_search, name='manufacturer_search'),
     path('<str:caliber_code>/search/headstamp/', views.headstamp_search, name='headstamp_search'), 
     path('<str:caliber_code>/search/load/', views.load_search, name='load_search'),
-    path('<str:caliber_code>/search/box/', views.load_search, name='box_search'),
+    path('<str:caliber_code>/search/box/', views.box_search, name='box_search'),
 
     # Add new items (placeholders)
     path('<str:caliber_code>/add-artifact/', views.add_artifact, name='add_artifact'),
