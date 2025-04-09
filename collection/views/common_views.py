@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Case, When, Subquery, OuterRef
 from django.db.models.functions import Upper, Substr
-from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
@@ -14,14 +13,47 @@ def landing(request):
     # Get all calibers
     calibers = Caliber.objects.all().order_by('order', 'name')
     
-    # Add dummy artifact counts
+    # Get ContentType objects once outside the loop
+    country_ct = ContentType.objects.get_for_model(Country)
+    manufacturer_ct = ContentType.objects.get_for_model(Manufacturer)
+    headstamp_ct = ContentType.objects.get_for_model(Headstamp)
+    load_ct = ContentType.objects.get_for_model(Load)
+    date_ct = ContentType.objects.get_for_model(Date)
+    variation_ct = ContentType.objects.get_for_model(Variation)
+    
+    # Calculate actual artifact counts for each caliber
     for caliber in calibers:
-        if caliber.code == '9mmP':
-            caliber.artifact_count = 17240
-        elif caliber.code == '765mmP':
-            caliber.artifact_count = 56
-        else:
-            caliber.artifact_count = 107
+        # Count loads, dates, and variations
+        load_count = Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).count()
+        date_count = Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).count()
+        variation_count = Variation.objects.filter(
+            Q(load__headstamp__manufacturer__country__caliber=caliber) |
+            Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+        ).count()
+        
+        # Get IDs for box query
+        country_ids = Country.objects.filter(caliber=caliber).values_list('id', flat=True)
+        manufacturer_ids = Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True)
+        headstamp_ids = Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True)
+        load_ids = Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
+        date_ids = Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
+        variation_ids = Variation.objects.filter(
+            Q(load__headstamp__manufacturer__country__caliber=caliber) |
+            Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+        ).values_list('id', flat=True)
+        
+        # Count boxes at all levels
+        box_count = Box.objects.filter(
+            Q(content_type=country_ct, object_id__in=country_ids) |
+            Q(content_type=manufacturer_ct, object_id__in=manufacturer_ids) |
+            Q(content_type=headstamp_ct, object_id__in=headstamp_ids) |
+            Q(content_type=load_ct, object_id__in=load_ids) |
+            Q(content_type=date_ct, object_id__in=date_ids) |
+            Q(content_type=variation_ct, object_id__in=variation_ids)
+        ).count()
+        
+        # Set the calculated total artifact count
+        caliber.artifact_count = load_count + date_count + variation_count + box_count
     
     # Get the global collection info
     collection_info = CollectionInfo.get_solo()
