@@ -14,6 +14,9 @@ logs/
 temp/
 data_migration/output
 
+#VS Code stuff:
+.VSCodeCounter/
+
 # Mac
 .DS_Store
 EOF
