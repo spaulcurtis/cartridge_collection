@@ -1,0 +1,70 @@
+{% extends 'collection/base.html' %}
+{% load static %}
+
+{% block title %}Login - Cartridge Collection{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .login-container {
+        max-width: 450px;
+        margin: 0 auto;
+        padding: 3rem 1rem;
+    }
+    .login-card {
+        border-radius: 0.5rem;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .logo {
+        max-width: 80px;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="text-center mb-4">
+        <a href="{% url 'landing' %}">
+            <img src="{% static 'collection/images/djammo48.png' %}" alt="Cartridge Collection Logo" class="logo">
+        </a>
+        <h2>Log In</h2>
+        <p class="text-muted">Access your cartridge collection</p>
+    </div>
+    
+    <div class="card login-card">
+        <div class="card-body p-4">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                Your username and password didn't match. Please try again.
+            </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="id_username" class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" id="id_username" autocomplete="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="id_password" class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" id="id_password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Log In</button>
+                
+                <!-- Hidden field to store 'next' parameter if it exists -->
+                <input type="hidden" name="next" value="{{ next }}">
+            </form>
+        </div>
+    </div>
+    
+    <div class="text-center mt-3">
+        <a href="{% url 'landing' %}" class="text-decoration-none">
+            <i class="bi bi-arrow-left"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,13 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
     # Landing page
     path('', views.landing, name='landing'),
+
+    path('login/', auth_views.LoginView.as_view(template_name='collection/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
     
     path('<str:caliber_code>/', views.dashboard, name='dashboard'),
 
@@ -97,5 +101,6 @@ urlpatterns = [
     # With caliber specified in URL
     path('<str:caliber_code>/documentation/user-guide/', views.user_guide_view, name='user_guide_with_caliber'),
     path('<str:caliber_code>/documentation/support/', views.support_view, name='support_with_caliber'),
+
 ]
 
