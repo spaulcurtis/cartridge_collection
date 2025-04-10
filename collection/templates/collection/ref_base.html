@@ -1,0 +1,277 @@
+{% extends 'collection/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    /* Header styling */
+    .site-header {
+        background-color: #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+    }
+    .logo-container {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+    .site-logo {
+        max-width: 56px;
+        height: auto;
+    }
+    .site-title {
+        margin-left: 16px;
+        font-weight: 700;
+        font-size: 1.75rem;
+        color: #1a2b3c;
+        letter-spacing: -0.5px;
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.05);
+    }
+        .account-dropdown .dropdown-toggle::after {
+        margin-left: 0.5rem;
+    }
+    
+    /* Hero section for landing page */
+    .hero-section {
+        padding: 4rem 0;
+        background-color: #e9f2f9;
+        margin-bottom: 3rem;
+    }
+    
+    /* Caliber cards */
+    .calibers-section {
+        padding: 2rem 0 4rem;
+    }
+    .caliber-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        margin-bottom: 2rem;
+        border: none;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        height: 100%;
+    }
+    .caliber-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .caliber-img {
+        height: 200px;
+        width: 100%;
+        object-fit: contain;
+        object-position: center;
+        max-width: 100%;
+        display: block;
+        background-color: #f8f9fa;
+        padding: 1rem;
+    }
+    .card-footer {
+        background-color: transparent;
+        border-top: none;
+    }
+    .caliber-description {
+        min-height: 80px;
+        color: #6c757d;
+    }
+    
+    /* Page title styling for documentation/reference pages */
+    .page-title-container {
+        padding: 2rem 0;
+        background-color: #e9f2f9;
+        margin-bottom: 2rem;
+    }
+    
+    /* Information sections for landing page */
+    .info-section {
+        padding: 3rem 0;
+        background-color: #f8f9fa;
+        margin-bottom: 3rem;
+    }
+    .info-section:nth-child(even) {
+        background-color: #fff;
+    }
+    
+    /* Card styling for reference content */
+    .info-card {
+        border: none;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        height: 100%;
+        transition: transform 0.2s;
+        margin-bottom: 1.5rem;
+    }
+    .info-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    /* Content section for reference pages */
+    .ref-content {
+        min-height: 40vh;
+        padding-bottom: 3rem;
+    }
+    
+    /* Footer styling */
+    .site-footer {
+        background-color: #343a40;
+        color: #f8f9fa;
+        padding: 3rem 0 2rem;
+    }
+    .footer-heading {
+        color: #fff;
+        font-size: 1.2rem;
+        margin-bottom: 1.25rem;
+    }
+    .footer-link {
+        color: #adb5bd;
+        transition: color 0.2s;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    .footer-link:hover {
+        color: #fff;
+        text-decoration: none;
+    }
+    .copyright {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 991.98px) {
+        .site-header .row {
+            flex-direction: column;
+        }
+        
+        .site-header .col-lg-8,
+        .site-header .col-lg-4 {
+            width: 100%;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .site-header .col-lg-4:last-child {
+            margin-bottom: 0;
+        }
+        
+        .logo-container {
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-section {
+            padding: 3rem 0;
+        }
+        
+        .calibers-section {
+            padding: 1rem 0 3rem;
+        }
+    }
+    
+    /* Dropdown form fix */
+    .dropdown-item-form {
+        width: 100%;
+    }
+    
+    .dropdown-item-form button.dropdown-item {
+        background-color: transparent;
+        border: none;
+        width: 100%;
+        text-align: left;
+        padding: 0.25rem 1rem;
+        font-weight: normal;
+    }
+    
+    .dropdown-item-form button.dropdown-item:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% block ref_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header class="site-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <a href="{% url 'landing' %}" class="text-decoration-none">
+                    <div class="logo-container">
+                        <img src="{% static 'collection/images/djammo48.png' %}" alt="Cartridge Collection Logo" class="site-logo">
+                        <span class="site-title">{{ collection_name }}</span>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-4 d-flex justify-content-end">
+                {% if user.is_authenticated %}
+                <div class="dropdown account-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i> {{ user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}" class="dropdown-item-form">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                {% else %}
+                <a class="btn btn-outline-primary" href="{% url 'login' %}">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content Area -->
+{% block ref_content %}{% endblock %}
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <h5 class="footer-heading">Cartridge Collection</h5>
+                <p>A comprehensive database and management system for ammunition collectors and researchers.</p>
+            </div>
+            <div class="col-lg-2 col-md-4 mb-4">
+                <h5 class="footer-heading">Resources</h5>
+                <a href="{% url 'user_guide' %}" class="footer-link">Documentation</a>
+                <a href="{% url 'support' %}" class="footer-link">Support</a>
+                <a href="{% url 'support' %}#faq" class="footer-link">FAQs</a>
+            </div>
+            <div class="col-lg-2 col-md-4 mb-4">
+                <h5 class="footer-heading">Explore</h5>
+                <a href="{% url 'landing' %}#calibers" class="footer-link">Collections</a>
+                <a href="#" class="footer-link">Reference</a>
+                <a href="#" class="footer-link">Guides</a>
+                {% if user.is_authenticated and user.is_staff %}
+                <a href="{% url 'admin:index' %}" class="footer-link">Admin</a>
+                {% endif %}
+            </div>
+            <div class="col-lg-4 mb-4">
+                <h5 class="footer-heading">Connect</h5>
+                <p>Join the IAA for a community of collectors and researchers.</p>
+                <div class="d-flex">
+                    <a href="https://cartridgecollectors.org/" class="btn btn-outline-light"><i class="bi bi-people"></i> Community</a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+{% endblock %}

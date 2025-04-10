@@ -1,4 +1,4 @@
-{% extends 'collection/app_base.html' %}
+{% extends 'collection/ref_base.html' %}
 {% load static %}
 
 {% block title %}Support - Cartridge Collection{% endblock %}
@@ -51,17 +51,11 @@
 </style>
 {% endblock %}
 
-{% block app_content %}
+{% block ref_content %}
 <div class="container py-4">
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard' caliber.code %}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Support</li>
-                </ol>
-            </nav>
             
             <h1 class="mb-4">Support</h1>
             
@@ -89,17 +83,7 @@
                         </div>
                         <div class="contact-details">
                             <h3 class="h5 mb-0">Email</h3>
-                            <p class="mb-0"><a href="mailto:spaulcurtis@gmail.com">spaulcurtis@gmail.com</a></p>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-info">
-                        <div class="support-icon">
-                            <i class="bi bi-telephone-fill"></i>
-                        </div>
-                        <div class="contact-details">
-                            <h3 class="h5 mb-0">Phone</h3>
-                            <p class="mb-0">(404) 734-7859</p>
+                            <p class="mb-0"><a href="mailto:spaulcurtis@gmail.com">cartridge.pcurtis@gmail.com</a></p>
                         </div>
                     </div>
                     
@@ -110,31 +94,11 @@
             </div>
             
             <!-- Frequently Asked Questions -->
-            <div class="card mb-4">
+            <div id="faq" class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h2 class="h5 mb-0">Frequently Asked Questions</h2>
                 </div>
                 <div class="card-body">
-                    <div class="faq-item">
-                        <h3 class="faq-question">How do I start and stop the application?</h3>
-                        <div class="faq-answer">
-                            <p><strong>To start the application:</strong> Double-click on the <strong>collect</strong> icon on your desktop. This will start the web server and open your browser.</p>
-                            
-                            <p><strong>To stop the application:</strong> Press <kbd>CTRL</kbd>+<kbd>C</kbd> in the Windows terminal window where the web server is running. This controlled shutdown prevents database corruption.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="faq-item">
-                        <h3 class="faq-question">How do I update the application?</h3>
-                        <div class="faq-answer">
-                            <p>To get the newest version of the application, double-click on the <strong>sync collection</strong> icon on your desktop. This will pull the latest source code from GitHub.</p>
-                            
-                            <p>Generally, Paul will contact you to tell you when new bug fixes or features are available.</p>
-                            
-                            <p>Most code updates will be compatible with your existing database. Sometimes certain types of updates will require coordinated changes between the application and the underlying database. In these cases, Paul will schedule a maintenance time to make the coordinated changes.</p>
-                        </div>
-                    </div>
-                    
                     <div class="faq-item">
                         <h3 class="faq-question">How do I search for specific items?</h3>
                         <div class="faq-answer">
@@ -142,8 +106,8 @@
                             <ul>
                                 <li><strong>Drill Down:</strong> Navigate from Countries down through the hierarchy</li>
                                 <li><strong>Direct ID Search:</strong> Use the green "Go" button in the upper right to directly access Load, Date, Variation, or Box records by ID (e.g., B231 for Box 231)</li>
-                                <li><strong>Headstamp Search:</strong> Use the blue "Search" button to find headstamps matching your query (either by headstamp code or name)</li>
-                                <li><strong>Filtered Lists:</strong> Use filters on list pages to narrow down results</li>
+                                <li><strong>Headstamp Search:</strong> Use the blue "Search" button inthe upper right to find headstamps matching your query (either by headstamp code or name)</li>
+                                <li><strong>Advanced Search:</strong> Go the the "Advanced Search" quick action for either Manufacturer, Headstamp, Load, or Box searches with filtering and flexible search criteria</li>
                             </ul>
                         </div>
                     </div>
@@ -171,7 +135,7 @@
                                 <li>Select the new parent record from the options</li>
                                 <li>Confirm the move</li>
                             </ol>
-                            <p>The record and all its children will be moved to the new location in the hierarchy.</p>
+                            <p>The record and all its children will be moved to the new location in the hierarchy.  In some cases you can select the new parent from a list and in others you must carefully type in the correct headstamp code or cartridge ID.</p>
                         </div>
                     </div>
                 </div>
@@ -183,15 +147,16 @@
                     <h2 class="h5 mb-0">Upcoming Features</h2>
                 </div>
                 <div class="card-body">
-                    <p>We're continually updating the capabilities of the collection app. Here are some of the features we're working on:</p>
+                    <p>We're continually updating the capabilities of the collection app. Here are some of the features we're considering:</p>
                     
                     <ul class="feature-list">
-                        <li><strong>Improved image management:</strong> Better handling of multiple images per record</li>
-                        <li><strong>Advanced filtering:</strong> More powerful search and filter options</li>
+                        <li><strong>Improved image management:</strong> Supporting of multiple images per record, and browsing images.</li>
+                        <li><strong>Import capability:</strong> Automating the importing of images, and adding flexible record importing from various formats.</li>
                         <li><strong>Export capabilities:</strong> Export your collection data in various formats</li>
-                        <li><strong>Box tracking improvements:</strong> Better linking between boxes and their contents</li>
+                        <li><strong>Optimized artifact addition:</strong> Creating more optimized addition of new artifacts with fewer clicks</li>
                         <li><strong>Mobile compatibility:</strong> Improved experience on smaller screens and tablets</li>
                     </ul>
+                    <p>Feel free to suggest or vote on enahncements</p>
                 </div>
             </div>
         </div>
@@ -206,8 +171,8 @@
                     <a href="{% url 'user_guide' %}" class="list-group-item list-group-item-action">
                         <i class="bi bi-book me-2"></i> User Guide
                     </a>
-                    <a href="{% url 'dashboard' caliber.code %}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-house-door me-2"></i> Return to Dashboard
+                    <a href="{% url 'landing' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-house-door me-2"></i> Home
                     </a>
                 </div>
             </div>
@@ -220,7 +185,7 @@
                     <a href="https://github.com/spaulcurtis/collection_webapp" target="_blank" class="btn btn-outline-primary w-100 mb-2">
                         <i class="bi bi-github me-2"></i> GitHub Repository
                     </a>
-                    <a href="mailto:spaulcurtis@gmail.com?subject=Cartridge Collection Support" class="btn btn-outline-success w-100">
+                    <a href="mailto:cartridge.pcurtis@gmail.com?subject=Cartridge Collection Support" class="btn btn-outline-success w-100">
                         <i class="bi bi-envelope me-2"></i> Email Support
                     </a>
                 </div>

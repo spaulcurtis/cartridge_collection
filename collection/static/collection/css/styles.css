@@ -1,0 +1,50 @@
+/* Add this to your base.html to fix the dropdown item form issue */
+
+/* This style ensures the form inside dropdown items maintains proper styling */
+.dropdown-item-form {
+    width: 100%;
+}
+
+.dropdown-item-form button.dropdown-item {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 0.25rem 1rem;
+    font-weight: normal;
+}
+
+.dropdown-item-form button.dropdown-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile responsiveness enhancements */
+@media (max-width: 991.98px) {
+    .site-header .row {
+        flex-direction: column;
+    }
+    
+    .site-header .col-lg-3,
+    .site-header .col-lg-6 {
+        width: 100%;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    
+    .site-header .col-lg-3:last-child {
+        margin-bottom: 0;
+    }
+    
+    .logo-container {
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    
+    .hero-section {
+        padding: 3rem 0;
+    }
+    
+    .calibers-section {
+        padding: 1rem 0 3rem;
+    }
+}
