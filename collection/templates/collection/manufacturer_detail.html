@@ -149,15 +149,19 @@
             </div>
             <div class="col-md-6">
                 <div class="action-buttons">
+                    {% if perms.collection.change_manufacturer %}
                     <a href="{% url 'manufacturer_update' caliber.code manufacturer.id %}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> Edit
                     </a>
                     <a href="{% url 'manufacturer_move' caliber.code manufacturer.id %}" class="btn btn-warning">
                         <i class="bi bi-arrows-move"></i> Move
                     </a>
+                    {% endif %}
+                    {% if perms.collection.delete_manufacturer %}
                     <a href="{% url 'manufacturer_delete' caliber.code manufacturer.id %}" class="btn btn-danger">
                         <i class="bi bi-trash"></i> Delete
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -167,9 +171,11 @@
     <div class="card shadow-sm mb-4">
         <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
             <h3 class="h5 mb-0">Headstamps</h3>
+            {% if perms.collection.add_headstamp %}
             <a href="{% url 'headstamp_create' caliber.code manufacturer.id %}" class="btn btn-sm btn-success">
                 <i class="bi bi-plus-circle"></i> Add Headstamp
             </a>
+            {% endif %}
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -290,9 +296,11 @@
     <div class="card shadow-sm">
         <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
             <h3 class="h5 mb-0">Boxes</h3>
+            {% if perms.collection.add_box %}
             <a href="{% url 'box_create' caliber_code=caliber.code model_name='manufacturer' object_id=manufacturer.id %}" class="btn btn-sm btn-info">
                 <i class="bi bi-plus-circle"></i> Add Box
             </a>
+            {% endif %}
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

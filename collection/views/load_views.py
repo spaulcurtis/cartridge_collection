@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Case, When, Subquery, OuterRef
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, LoadSource, Source
 from ..forms.load_forms import LoadForm, LoadSourceForm, LoadMoveForm
@@ -170,6 +171,8 @@ def load_detail(request, caliber_code, load_id):
     return render(request, 'collection/load_detail.html', context)
 
 
+@login_required
+@permission_required('collection.add_load', raise_exception=True)
 def load_create(request, caliber_code, headstamp_id):
     """View for creating a new load"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -201,6 +204,8 @@ def load_create(request, caliber_code, headstamp_id):
     })
 
 
+@login_required
+@permission_required('collection.change_load', raise_exception=True)
 def load_update(request, caliber_code, load_id):
     """View for updating a load"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -241,6 +246,8 @@ def load_update(request, caliber_code, load_id):
     })
 
 
+@login_required
+@permission_required('collection.delete_load', raise_exception=True)
 def load_delete(request, caliber_code, load_id):
     """View for deleting a load"""
     caliber = get_object_or_404(Caliber, code=caliber_code)

@@ -15,7 +15,7 @@ This template expects the following variables:
     </div>
     {% endif %}
     
-    {% if has_confidential %}
+    {% if has_confidential and perms.collection.delete_country %}
     <div class="confidential-notes">
         <strong>Confidential {{ label|default:"Notes" }}:</strong> {{ confidential_notes }}
     </div>
