@@ -133,21 +133,43 @@
                                 <input type="text" id="headstamp_code" name="headstamp_code" class="form-control" 
                                        value="{{ search_params.headstamp_code }}" placeholder="Enter headstamp code...">
                                 
-                                <div class="mt-2 d-flex align-items-center">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_contains" 
-                                               value="contains" {% if search_params.headstamp_match_type == 'contains' %}checked{% endif %}>
-                                        <label class="form-check-label" for="headstamp_match_contains">Contains</label>
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_contains" 
+                                                   value="contains" {% if search_params.headstamp_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_startswith" 
+                                                   value="startswith" {% if search_params.headstamp_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_exactly" 
+                                                   value="is_exactly" {% if search_params.headstamp_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_regex" 
+                                                   value="regex" {% if search_params.headstamp_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_match_regex">Regex</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_startswith" 
-                                               value="startswith" {% if search_params.headstamp_match_type == 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="headstamp_match_startswith">Starts with</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="headstamp_match_type" id="headstamp_match_exactly" 
-                                               value="is_exactly" {% if search_params.headstamp_match_type == 'is_exactly' %}checked{% endif %}>
-                                        <label class="form-check-label" for="headstamp_match_exactly">Is exactly (case sensitive)</label>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="headstamp_case_sensitive" id="headstamp_case_sensitive_no" 
+                                                   value="no" {% if not search_params.headstamp_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="headstamp_case_sensitive" id="headstamp_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.headstamp_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="headstamp_case_sensitive_yes">Case sensitive</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -245,26 +267,93 @@
                                 <input type="text" id="description" name="description" class="form-control" 
                                        value="{{ search_params.description }}" placeholder="Search in description...">
                                 
-                                <div class="mt-2 d-flex align-items-center">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="description_match_type" id="description_match_contains" 
-                                               value="contains" {% if search_params.description_match_type != 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="description_match_contains">Contains</label>
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="description_match_type" id="description_match_contains" 
+                                                   value="contains" {% if search_params.description_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="description_match_type" id="description_match_startswith" 
+                                                   value="startswith" {% if search_params.description_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="description_match_type" id="description_match_exactly" 
+                                                   value="is_exactly" {% if search_params.description_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="description_match_type" id="description_match_regex" 
+                                                   value="regex" {% if search_params.description_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_match_regex">Regex</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="description_match_type" id="description_match_startswith" 
-                                               value="startswith" {% if search_params.description_match_type == 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="description_match_startswith">Starts with</label>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="description_case_sensitive" id="description_case_sensitive_no" 
+                                                   value="no" {% if not search_params.description_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="description_case_sensitive" id="description_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.description_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="description_case_sensitive_yes">Case sensitive</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="mb-3">
-                                <label for="notes" class="form-label">Notes Contains:</label>
+                                <label for="notes" class="form-label">Notes:</label>
                                 <input type="text" id="notes" name="notes" class="form-control" 
                                        value="{{ search_params.notes }}" placeholder="Search in notes...">
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_contains" 
+                                                   value="contains" {% if search_params.notes_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_startswith" 
+                                                   value="startswith" {% if search_params.notes_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_exactly" 
+                                                   value="is_exactly" {% if search_params.notes_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_regex" 
+                                                   value="regex" {% if search_params.notes_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_regex">Regex</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_case_sensitive" id="notes_case_sensitive_no" 
+                                                   value="no" {% if not search_params.notes_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="notes_case_sensitive" id="notes_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.notes_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_case_sensitive_yes">Case sensitive</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
+                                                        
                             <div class="mb-3">
                                 <label class="form-label">Search Operator:</label>
                                 <div class="d-flex align-items-center">
@@ -312,18 +401,22 @@
                     {% endif %}
                     
                     {% if search_params.headstamp_code %}
-                    <li>Headstamp code 
+                    <li>
+                        Headstamp code 
                         {% if search_params.headstamp_match_type == 'contains' %}
                             contains
                         {% elif search_params.headstamp_match_type == 'startswith' %}
                             starts with
                         {% elif search_params.headstamp_match_type == 'is_exactly' %}
-                            is exactly (case sensitive)
+                            is exactly
+                        {% elif search_params.headstamp_match_type == 'regex' %}
+                            matches regex
                         {% endif %}
                         "{{ search_params.headstamp_code }}"
+                        ({% if search_params.headstamp_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
                     </li>
                     {% endif %}
-                    
+                                        
                     {% if search_params.load_type_id %}
                     <li>Load type: {{ selected_load_type_name }}</li>
                     {% endif %}
@@ -349,20 +442,39 @@
                     {% endif %}
                     
                     {% if search_params.description %}
-                    <li>Description 
+                    <li>
+                        Description 
                         {% if search_params.description_match_type == 'contains' %}
                             contains
                         {% elif search_params.description_match_type == 'startswith' %}
                             starts with
+                        {% elif search_params.description_match_type == 'is_exactly' %}
+                            is exactly
+                        {% elif search_params.description_match_type == 'regex' %}
+                            matches regex
                         {% endif %}
                         "{{ search_params.description }}"
+                        ({% if search_params.description_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
                     </li>
                     {% endif %}
-                    
+                                        
                     {% if search_params.notes %}
-                    <li>Notes containing: "{{ search_params.notes }}"</li>
+                    <li>
+                        Notes 
+                        {% if search_params.notes_match_type == 'contains' %}
+                            contains
+                        {% elif search_params.notes_match_type == 'startswith' %}
+                            starts with
+                        {% elif search_params.notes_match_type == 'is_exactly' %}
+                            is exactly
+                        {% elif search_params.notes_match_type == 'regex' %}
+                            matches regex
+                        {% endif %}
+                        "{{ search_params.notes }}"
+                        ({% if search_params.notes_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
+                    </li>
                     {% endif %}
-                    
+                                        
                     {% if search_params.country_id or search_params.manufacturer_id or search_params.headstamp_code or search_params.load_type_id or search_params.bullet_id or search_params.is_magnetic or search_params.case_type_id or search_params.primer_id or search_params.pa_color_id or search_params.description or search_params.notes %}
                     <li>Search operator: <strong>{{ search_params.search_operator|upper }}</strong></li>
                     {% endif %}
@@ -614,6 +726,7 @@
         document.getElementById('manufacturer_id').disabled = true;
         document.getElementById('headstamp_code').value = '';
         document.getElementById('headstamp_match_contains').checked = true;
+        document.getElementById('headstamp_case_sensitive_no').checked = true;
         document.getElementById('load_type_id').value = '';
         document.getElementById('bullet_id').value = '';
         document.getElementById('is_magnetic_any').checked = true;
@@ -622,7 +735,10 @@
         document.getElementById('pa_color_id').value = '';
         document.getElementById('description').value = '';
         document.getElementById('description_match_contains').checked = true;
+        document.getElementById('description_case_sensitive_no').checked = true;
         document.getElementById('notes').value = '';
+        document.getElementById('notes_match_contains').checked = true;
+        document.getElementById('notes_case_sensitive_no').checked = true;
         document.getElementById('search_operator_or').checked = true;
         
         // Reset sort parameters
@@ -632,7 +748,7 @@
         // Submit the form
         document.getElementById('load-search-form').submit();
     }
-    
+        
     // Update manufacturers dropdown when country changes
     function updateManufacturers() {
         const countryId = document.getElementById('country_id').value;

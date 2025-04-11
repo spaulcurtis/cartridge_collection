@@ -172,6 +172,7 @@ def load_search(request, caliber_code):
         'manufacturer_id': request.GET.get('manufacturer_id', ''),
         'headstamp_code': request.GET.get('headstamp_code', ''),
         'headstamp_match_type': request.GET.get('headstamp_match_type', 'contains'),
+        'headstamp_case_sensitive': request.GET.get('headstamp_case_sensitive', 'no') == 'yes',
         'load_type_id': request.GET.get('load_type_id', ''),
         'bullet_id': request.GET.get('bullet_id', ''),
         'is_magnetic': request.GET.get('is_magnetic', ''),
@@ -180,7 +181,10 @@ def load_search(request, caliber_code):
         'pa_color_id': request.GET.get('pa_color_id', ''),
         'description': request.GET.get('description', ''),
         'description_match_type': request.GET.get('description_match_type', 'contains'),
+        'description_case_sensitive': request.GET.get('description_case_sensitive', 'no') == 'yes',
         'notes': request.GET.get('notes', ''),
+        'notes_match_type': request.GET.get('notes_match_type', 'contains'),
+        'notes_case_sensitive': request.GET.get('notes_case_sensitive', 'no') == 'yes',
         'search_operator': request.GET.get('search_operator', 'or'),
         'sort_by': sort_by,
         'sort_dir': sort_dir,
@@ -305,16 +309,34 @@ def load_search(request, caliber_code):
             headstamp_code = search_params['headstamp_code']
             headstamp_filter = None
             
-            if search_params['headstamp_match_type'] == 'is_exactly':
-                # Case sensitive exact match
-                headstamp_filter = Q(headstamp__code=headstamp_code)
-            elif search_params['headstamp_match_type'] == 'startswith':
-                # Case insensitive starts with
-                headstamp_filter = Q(headstamp__code__istartswith=headstamp_code)
-            else:  # contains (default)
-                # Case insensitive contains
-                headstamp_filter = Q(headstamp__code__icontains=headstamp_code)
+            # Determine case sensitivity for headstamp search
+            is_headstamp_case_sensitive = search_params['headstamp_case_sensitive']
             
+            if search_params['headstamp_match_type'] == 'is_exactly':
+                # Exact match
+                if is_headstamp_case_sensitive:
+                    headstamp_filter = Q(headstamp__code=headstamp_code)
+                else:
+                    headstamp_filter = Q(headstamp__code__iexact=headstamp_code)
+            elif search_params['headstamp_match_type'] == 'startswith':
+                # Starts with - case sensitivity depends on setting
+                if is_headstamp_case_sensitive:
+                    headstamp_filter = Q(headstamp__code__startswith=headstamp_code)
+                else:
+                    headstamp_filter = Q(headstamp__code__istartswith=headstamp_code)
+            elif search_params['headstamp_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_headstamp_case_sensitive:
+                    headstamp_filter = Q(headstamp__code__regex=headstamp_code)
+                else:
+                    headstamp_filter = Q(headstamp__code__iregex=headstamp_code)
+            else:  # contains (default)
+                # Contains - case sensitivity depends on setting
+                if is_headstamp_case_sensitive:
+                    headstamp_filter = Q(headstamp__code__contains=headstamp_code)
+                else:
+                    headstamp_filter = Q(headstamp__code__icontains=headstamp_code)
+    
             if search_params['search_operator'] == 'and':
                 query = query.filter(headstamp_filter)
             else:  # 'or' is default
@@ -400,12 +422,33 @@ def load_search(request, caliber_code):
             description = search_params['description']
             description_filter = None
             
-            if search_params['description_match_type'] == 'startswith':
-                # Case insensitive starts with
-                description_filter = Q(description__istartswith=description)
+            # Determine case sensitivity for description search
+            is_description_case_sensitive = search_params['description_case_sensitive']
+            
+            if search_params['description_match_type'] == 'is_exactly':
+                # Exact match
+                if is_description_case_sensitive:
+                    description_filter = Q(description=description)
+                else:
+                    description_filter = Q(description__iexact=description)
+            elif search_params['description_match_type'] == 'startswith':
+                # Starts with
+                if is_description_case_sensitive:
+                    description_filter = Q(description__startswith=description)
+                else:
+                    description_filter = Q(description__istartswith=description)
+            elif search_params['description_match_type'] == 'regex':
+                # Regex
+                if is_description_case_sensitive:
+                    description_filter = Q(description__regex=description)
+                else:
+                    description_filter = Q(description__iregex=description)
             else:  # contains (default)
-                # Case insensitive contains
-                description_filter = Q(description__icontains=description)
+                # Contains
+                if is_description_case_sensitive:
+                    description_filter = Q(description__contains=description)
+                else:
+                    description_filter = Q(description__icontains=description)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(description_filter)
@@ -414,7 +457,36 @@ def load_search(request, caliber_code):
         
         # Apply notes search (always case insensitive)
         if search_params['notes']:
-            notes_filter = Q(note__icontains=search_params['notes'])
+            notes = search_params['notes']
+            notes_filter = None
+            
+            # Determine case sensitivity for notes search
+            is_notes_case_sensitive = search_params['notes_case_sensitive']
+            
+            if search_params['notes_match_type'] == 'is_exactly':
+                # Exact match
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note=notes)
+                else:
+                    notes_filter = Q(note__iexact=notes)
+            elif search_params['notes_match_type'] == 'startswith':
+                # Starts with
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__startswith=notes)
+                else:
+                    notes_filter = Q(note__istartswith=notes)
+            elif search_params['notes_match_type'] == 'regex':
+                # Regex
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__regex=notes)
+                else:
+                    notes_filter = Q(note__iregex=notes)
+            else:  # contains (default)
+                # Contains
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__contains=notes)
+                else:
+                    notes_filter = Q(note__icontains=notes)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(notes_filter)
@@ -491,9 +563,13 @@ def manufacturer_search(request, caliber_code):
         'country_id': request.GET.get('country_id', ''),
         'code': request.GET.get('code', ''),
         'code_match_type': request.GET.get('code_match_type', 'contains'),
+        'code_case_sensitive': request.GET.get('code_case_sensitive', 'no') == 'yes',
         'name': request.GET.get('name', ''),
         'name_match_type': request.GET.get('name_match_type', 'contains'),
+        'name_case_sensitive': request.GET.get('name_case_sensitive', 'no') == 'yes',
         'notes': request.GET.get('notes', ''),
+        'notes_match_type': request.GET.get('notes_match_type', 'contains'),
+        'notes_case_sensitive': request.GET.get('notes_case_sensitive', 'no') == 'yes',
         'search_operator': request.GET.get('search_operator', 'or'),
         'sort_by': sort_by,
         'sort_dir': sort_dir,
@@ -506,7 +582,11 @@ def manufacturer_search(request, caliber_code):
     # Determine if search was performed
     performed_search = any(
         v for k, v in search_params.items() 
-        if k not in ['code_match_type', 'name_match_type', 'search_operator', 'sort_by', 'sort_dir'] and v
+        if k not in [
+            'code_match_type', 'name_match_type', 'notes_match_type',
+            'code_case_sensitive', 'name_case_sensitive', 'notes_case_sensitive', 
+            'search_operator', 'sort_by', 'sort_dir'
+        ] and v
     )
     
     if performed_search:
@@ -529,46 +609,105 @@ def manufacturer_search(request, caliber_code):
         from django.db.models import Q
         property_filters = Q()
         
-        # Apply code search if provided
+        # Apply code search if provided with updated case sensitivity options
         if search_params['code']:
             code = search_params['code']
             code_filter = None
             
+            # Determine case sensitivity for code search
+            is_code_case_sensitive = search_params['code_case_sensitive']
+            
             if search_params['code_match_type'] == 'is_exactly':
-                # Exact match (case sensitive)
+                # Exact match (always case sensitive)
                 code_filter = Q(code=code)
             elif search_params['code_match_type'] == 'startswith':
-                # Case insensitive starts with
-                code_filter = Q(code__istartswith=code)
+                # Starts with - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__startswith=code)
+                else:
+                    code_filter = Q(code__istartswith=code)
+            elif search_params['code_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__regex=code)
+                else:
+                    code_filter = Q(code__iregex=code)
             else:  # contains (default)
-                # Case insensitive contains
-                code_filter = Q(code__icontains=code)
+                # Contains - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__contains=code)
+                else:
+                    code_filter = Q(code__icontains=code)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(code_filter)
             else:  # 'or' is default
                 property_filters |= code_filter
         
-        # Apply name search if provided
+        # Apply name search if provided with case sensitivity
         if search_params['name']:
             name = search_params['name']
             name_filter = None
             
-            if search_params['name_match_type'] == 'startswith':
-                # Case insensitive starts with
-                name_filter = Q(name__istartswith=name)
+            # Determine case sensitivity for name search
+            is_name_case_sensitive = search_params['name_case_sensitive']
+            
+            if search_params['name_match_type'] == 'is_exactly':
+                # Exact match (always case sensitive)
+                name_filter = Q(name=name)
+            elif search_params['name_match_type'] == 'startswith':
+                # Starts with - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__startswith=name)
+                else:
+                    name_filter = Q(name__istartswith=name)
+            elif search_params['name_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__regex=name)
+                else:
+                    name_filter = Q(name__iregex=name)
             else:  # contains (default)
-                # Case insensitive contains
-                name_filter = Q(name__icontains=name)
+                # Contains - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__contains=name)
+                else:
+                    name_filter = Q(name__icontains=name)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(name_filter)
             else:  # 'or' is default
                 property_filters |= name_filter
         
-        # Apply notes search (always case insensitive)
+        # Apply notes search with updated options
         if search_params['notes']:
-            notes_filter = Q(note__icontains=search_params['notes'])
+            notes = search_params['notes']
+            notes_filter = None
+            
+            # Determine case sensitivity for notes search
+            is_notes_case_sensitive = search_params['notes_case_sensitive']
+            
+            if search_params['notes_match_type'] == 'is_exactly':
+                # Exact match (always case sensitive)
+                notes_filter = Q(note=notes)
+            elif search_params['notes_match_type'] == 'startswith':
+                # Starts with - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__startswith=notes)
+                else:
+                    notes_filter = Q(note__istartswith=notes)
+            elif search_params['notes_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__regex=notes)
+                else:
+                    notes_filter = Q(note__iregex=notes)
+            else:  # contains (default)
+                # Contains - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__contains=notes)
+                else:
+                    notes_filter = Q(note__icontains=notes)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(notes_filter)
@@ -605,12 +744,7 @@ def manufacturer_search(request, caliber_code):
             
         # Order results
         results = query.order_by(order_field)
-        
-        # Post-process results to add box counts using the total_box_count method
-        # This is more efficient than trying to do complex ContentType queries
-        for manufacturer in results:
-            manufacturer.box_count = manufacturer.total_box_count()
-    
+            
     context = {
         'caliber': caliber,
         'all_calibers': all_calibers,
@@ -648,6 +782,10 @@ def headstamp_search(request, caliber_code):
         'headstamp_name': request.GET.get('headstamp_name', ''),
         'code_match_type': request.GET.get('code_match_type', 'contains'),
         'name_match_type': request.GET.get('name_match_type', 'contains'),
+        'notes_match_type': request.GET.get('notes_match_type', 'contains'),
+        'code_case_sensitive': request.GET.get('code_case_sensitive', 'no') == 'yes',
+        'name_case_sensitive': request.GET.get('name_case_sensitive', 'no') == 'yes',
+        'notes_case_sensitive': request.GET.get('notes_case_sensitive', 'no') == 'yes',
         'search_operator': request.GET.get('search_operator', 'or'),
         'notes': request.GET.get('notes', ''),
         'sort_by': sort_by,
@@ -689,7 +827,11 @@ def headstamp_search(request, caliber_code):
     results = None
     performed_search = any(
         v for k, v in search_params.items() 
-        if k not in ['code_match_type', 'name_match_type', 'search_operator', 'sort_by', 'sort_dir'] and v
+        if k not in [
+            'code_match_type', 'name_match_type', 'notes_match_type',
+            'code_case_sensitive', 'name_case_sensitive', 'notes_case_sensitive',
+            'search_operator', 'sort_by', 'sort_dir'
+        ] and v
     )
     
     if performed_search:
@@ -720,46 +862,105 @@ def headstamp_search(request, caliber_code):
         from django.db.models import Q
         property_filters = Q()
         
-        # Apply headstamp code search if provided
+        # Apply headstamp code search if provided with updated case sensitivity options
         if search_params['headstamp_code']:
             code = search_params['headstamp_code']
             code_filter = None
             
+            # Determine case sensitivity for code search
+            is_code_case_sensitive = search_params['code_case_sensitive']
+            
             if search_params['code_match_type'] == 'is_exactly':
-                # Case sensitive exact match
+                # Exact match (always case sensitive)
                 code_filter = Q(code=code)
             elif search_params['code_match_type'] == 'startswith':
-                # Case insensitive starts with
-                code_filter = Q(code__istartswith=code)
+                # Starts with - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__startswith=code)
+                else:
+                    code_filter = Q(code__istartswith=code)
+            elif search_params['code_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__regex=code)
+                else:
+                    code_filter = Q(code__iregex=code)
             else:  # contains (default)
-                # Case insensitive contains
-                code_filter = Q(code__icontains=code)
+                # Contains - case sensitivity depends on setting
+                if is_code_case_sensitive:
+                    code_filter = Q(code__contains=code)
+                else:
+                    code_filter = Q(code__icontains=code)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(code_filter)
             else:  # 'or' is default
                 property_filters |= code_filter
         
-        # Apply headstamp name search if provided
+        # Apply headstamp name search if provided with case sensitivity
         if search_params['headstamp_name']:
             name = search_params['headstamp_name']
             name_filter = None
             
-            if search_params['name_match_type'] == 'startswith':
-                # Case insensitive starts with
-                name_filter = Q(name__istartswith=name)
+            # Determine case sensitivity for name search
+            is_name_case_sensitive = search_params['name_case_sensitive']
+            
+            if search_params['name_match_type'] == 'is_exactly':
+                # Exact match (always case sensitive)
+                name_filter = Q(name=name)
+            elif search_params['name_match_type'] == 'startswith':
+                # Starts with - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__startswith=name)
+                else:
+                    name_filter = Q(name__istartswith=name)
+            elif search_params['name_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__regex=name)
+                else:
+                    name_filter = Q(name__iregex=name)
             else:  # contains (default)
-                # Case insensitive contains
-                name_filter = Q(name__icontains=name)
+                # Contains - case sensitivity depends on setting
+                if is_name_case_sensitive:
+                    name_filter = Q(name__contains=name)
+                else:
+                    name_filter = Q(name__icontains=name)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(name_filter)
             else:  # 'or' is default
                 property_filters |= name_filter
         
-        # Apply notes search (always case insensitive)
+        # Apply notes search with case sensitivity
         if search_params['notes']:
-            notes_filter = Q(note__icontains=search_params['notes'])
+            notes = search_params['notes']
+            notes_filter = None
+            
+            # Determine case sensitivity for notes search
+            is_notes_case_sensitive = search_params['notes_case_sensitive']
+            
+            if search_params['notes_match_type'] == 'is_exactly':
+                # Exact match (always case sensitive)
+                notes_filter = Q(note=notes)
+            elif search_params['notes_match_type'] == 'startswith':
+                # Starts with - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__startswith=notes)
+                else:
+                    notes_filter = Q(note__istartswith=notes)
+            elif search_params['notes_match_type'] == 'regex':
+                # Regex match - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__regex=notes)
+                else:
+                    notes_filter = Q(note__iregex=notes)
+            else:  # contains (default)
+                # Contains - case sensitivity depends on setting
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__contains=notes)
+                else:
+                    notes_filter = Q(note__icontains=notes)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(notes_filter)
@@ -853,11 +1054,17 @@ def box_search(request, caliber_code):
         'manufacturer_id': request.GET.get('manufacturer_id', ''),
         'headstamp_code': request.GET.get('headstamp_code', ''),
         'headstamp_match_type': request.GET.get('headstamp_match_type', 'contains'),
+        'headstamp_case_sensitive': request.GET.get('headstamp_case_sensitive', 'no') == 'yes',
         'parent_type': request.GET.get('parent_type', ''),
         'location': request.GET.get('location', ''),
+        'location_match_type': request.GET.get('location_match_type', 'contains'),
+        'location_case_sensitive': request.GET.get('location_case_sensitive', 'no') == 'yes',
         'description': request.GET.get('description', ''),
         'description_match_type': request.GET.get('description_match_type', 'contains'),
+        'description_case_sensitive': request.GET.get('description_case_sensitive', 'no') == 'yes',
         'notes': request.GET.get('notes', ''),
+        'notes_match_type': request.GET.get('notes_match_type', 'contains'),
+        'notes_case_sensitive': request.GET.get('notes_case_sensitive', 'no') == 'yes',
         'search_operator': request.GET.get('search_operator', 'or'),
         'sort_by': sort_by,
         'sort_dir': sort_dir,
@@ -945,7 +1152,32 @@ def box_search(request, caliber_code):
                 
         # Apply location filter if provided
         if search_params['location']:
-            location_filter = Q(location__icontains=search_params['location'])
+            location = search_params['location']
+            location_filter = None
+            
+            # Determine case sensitivity for location search
+            is_location_case_sensitive = search_params['location_case_sensitive']
+            
+            if search_params['location_match_type'] == 'is_exactly':
+                if is_location_case_sensitive:
+                    location_filter = Q(location=location)
+                else:
+                    location_filter = Q(location__iexact=location)
+            elif search_params['location_match_type'] == 'startswith':
+                if is_location_case_sensitive:
+                    location_filter = Q(location__startswith=location)
+                else:
+                    location_filter = Q(location__istartswith=location)
+            elif search_params['location_match_type'] == 'regex':
+                if is_location_case_sensitive:
+                    location_filter = Q(location__regex=location)
+                else:
+                    location_filter = Q(location__iregex=location)
+            else:  # contains (default)
+                if is_location_case_sensitive:
+                    location_filter = Q(location__contains=location)
+                else:
+                    location_filter = Q(location__icontains=location)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(location_filter)
@@ -960,11 +1192,30 @@ def box_search(request, caliber_code):
             description = search_params['description']
             description_filter = None
             
-            if search_params['description_match_type'] == 'startswith':
-                description_filter = Q(description__istartswith=description)
+            # Determine case sensitivity for description search
+            is_description_case_sensitive = search_params['description_case_sensitive']
+            
+            if search_params['description_match_type'] == 'is_exactly':
+                if is_description_case_sensitive:
+                    description_filter = Q(description=description)
+                else:
+                    description_filter = Q(description__iexact=description)
+            elif search_params['description_match_type'] == 'startswith':
+                if is_description_case_sensitive:
+                    description_filter = Q(description__startswith=description)
+                else:
+                    description_filter = Q(description__istartswith=description)
+            elif search_params['description_match_type'] == 'regex':
+                if is_description_case_sensitive:
+                    description_filter = Q(description__regex=description)
+                else:
+                    description_filter = Q(description__iregex=description)
             else:  # contains (default)
-                description_filter = Q(description__icontains=description)
-                
+                if is_description_case_sensitive:
+                    description_filter = Q(description__contains=description)
+                else:
+                    description_filter = Q(description__icontains=description)
+            
             if search_params['search_operator'] == 'and':
                 query = query.filter(description_filter)
             else:  # 'or' is default
@@ -975,7 +1226,32 @@ def box_search(request, caliber_code):
             
         # Apply notes filter if provided
         if search_params['notes']:
-            notes_filter = Q(note__icontains=search_params['notes'])
+            notes = search_params['notes']
+            notes_filter = None
+            
+            # Determine case sensitivity for notes search
+            is_notes_case_sensitive = search_params['notes_case_sensitive']
+            
+            if search_params['notes_match_type'] == 'is_exactly':
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note=notes)
+                else:
+                    notes_filter = Q(note__iexact=notes)
+            elif search_params['notes_match_type'] == 'startswith':
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__startswith=notes)
+                else:
+                    notes_filter = Q(note__istartswith=notes)
+            elif search_params['notes_match_type'] == 'regex':
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__regex=notes)
+                else:
+                    notes_filter = Q(note__iregex=notes)
+            else:  # contains (default)
+                if is_notes_case_sensitive:
+                    notes_filter = Q(note__contains=notes)
+                else:
+                    notes_filter = Q(note__icontains=notes)
             
             if search_params['search_operator'] == 'and':
                 query = query.filter(notes_filter)
@@ -1092,14 +1368,31 @@ def box_search(request, caliber_code):
         if search_params['headstamp_code']:
             headstamp_code = search_params['headstamp_code']
             
+            # Determine case sensitivity for headstamp search
+            is_headstamp_case_sensitive = search_params['headstamp_case_sensitive']
+            
             # Build the appropriate headstamp filter based on the match type
             if search_params['headstamp_match_type'] == 'is_exactly':
-                headstamp_base_filter = Q(code=headstamp_code)
+                if is_headstamp_case_sensitive:
+                    headstamp_base_filter = Q(code=headstamp_code)
+                else:
+                    headstamp_base_filter = Q(code__iexact=headstamp_code)
             elif search_params['headstamp_match_type'] == 'startswith':
-                headstamp_base_filter = Q(code__istartswith=headstamp_code)
+                if is_headstamp_case_sensitive:
+                    headstamp_base_filter = Q(code__startswith=headstamp_code)
+                else:
+                    headstamp_base_filter = Q(code__istartswith=headstamp_code)
+            elif search_params['headstamp_match_type'] == 'regex':
+                if is_headstamp_case_sensitive:
+                    headstamp_base_filter = Q(code__regex=headstamp_code)
+                else:
+                    headstamp_base_filter = Q(code__iregex=headstamp_code)
             else:  # contains
-                headstamp_base_filter = Q(code__icontains=headstamp_code)
-                
+                if is_headstamp_case_sensitive:
+                    headstamp_base_filter = Q(code__contains=headstamp_code)
+                else:
+                    headstamp_base_filter = Q(code__icontains=headstamp_code)
+            
             # Get headstamps that match the filter
             matching_headstamps = Headstamp.objects.filter(
                 headstamp_base_filter,
