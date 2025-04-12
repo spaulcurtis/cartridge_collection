@@ -24,9 +24,6 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('collection.urls')),
-    # path('<slug:caliber_code>/', include('collection_9mm.urls')),
-    # # Add a default redirect to preferred caliber
-    # path('', RedirectView.as_view(url='/9mm/')),
 
 ]
 
