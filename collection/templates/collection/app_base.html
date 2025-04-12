@@ -137,10 +137,24 @@
                         <i class="bi bi-three-dots-vertical"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff %}
                         <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i> Admin</a></li>
-                        <li><a class="dropdown-item" href="{% url 'user_guide' %}"><i class="bi bi-question-circle me-2"></i> Documentation</a></li>
-                        <li><a class="dropdown-item" href="{% url 'support' %}"><i class="bi bi-telephone me-2"></i> Support</a></li>
-                    </ul>
+                        <div class="dropdown-divider"></div>
+                        {% endif %}
+                        <form method="post" action="{% url 'logout' %}" class="dropdown-item-form">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item">
+                                <i class="bi bi-box-arrow-right me-2"></i> Logout {{ user.username }}
+                            </button>
+                        </form>
+                    {% else %}
+                        <li><a class="dropdown-item" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right me-2"></i> Login</a></li>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <li><a class="dropdown-item" href="{% url 'user_guide' %}"><i class="bi bi-question-circle me-2"></i> Documentation</a></li>
+                    <li><a class="dropdown-item" href="{% url 'support' %}"><i class="bi bi-telephone me-2"></i> Support</a></li>
+                            </ul>
                 </div>
             </div>
         </div>

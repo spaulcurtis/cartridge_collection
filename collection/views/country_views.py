@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Case, When, Subquery, OuterRef
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box
 from ..forms.country_forms import CountryForm
@@ -652,7 +653,8 @@ def country_list(request, caliber_code):
 
     return render(request, 'collection/country_list.html', context)
 
-
+@login_required
+@permission_required('collection.add_country', raise_exception=True)
 def country_create(request, caliber_code):
     """View for creating a new country"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -677,6 +679,8 @@ def country_create(request, caliber_code):
         'submit_text': 'Create Country',
     })
 
+@login_required
+@permission_required('collection.change_country', raise_exception=True)
 def country_update(request, caliber_code, country_id):
     """View for updating a country"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -701,6 +705,8 @@ def country_update(request, caliber_code, country_id):
         'submit_text': 'Update Country',
     })
 
+@login_required
+@permission_required('collection.delete_country', raise_exception=True)
 def country_delete(request, caliber_code, country_id):
     """View for deleting a country"""
     caliber = get_object_or_404(Caliber, code=caliber_code)

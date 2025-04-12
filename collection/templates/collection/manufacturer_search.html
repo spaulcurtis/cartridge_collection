@@ -115,50 +115,139 @@
                                 <input type="text" id="code" name="code" class="form-control" 
                                        value="{{ search_params.code }}" placeholder="Enter manufacturer code...">
                                 
-                                <div class="mt-2 d-flex align-items-center">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_contains" 
-                                               value="contains" {% if search_params.code_match_type == 'contains' %}checked{% endif %}>
-                                        <label class="form-check-label" for="code_match_contains">Contains</label>
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="code_match_type" id="code_match_contains" 
+                                                   value="contains" {% if search_params.code_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="code_match_type" id="code_match_startswith" 
+                                                   value="startswith" {% if search_params.code_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="code_match_type" id="code_match_exactly" 
+                                                   value="is_exactly" {% if search_params.code_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="code_match_type" id="code_match_regex" 
+                                                   value="regex" {% if search_params.code_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_match_regex">Regex</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_startswith" 
-                                               value="startswith" {% if search_params.code_match_type == 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="code_match_startswith">Starts with</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="code_match_type" id="code_match_exactly" 
-                                               value="is_exactly" {% if search_params.code_match_type == 'is_exactly' %}checked{% endif %}>
-                                        <label class="form-check-label" for="code_match_exactly">Is exactly (case sensitive)</label>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="code_case_sensitive" id="code_case_sensitive_no" 
+                                                   value="no" {% if not search_params.code_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="code_case_sensitive" id="code_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.code_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="code_case_sensitive_yes">Case sensitive</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="mb-3">
                                 <label for="name" class="form-label">Manufacturer Name:</label>
                                 <input type="text" id="name" name="name" class="form-control" 
                                        value="{{ search_params.name }}" placeholder="Search in manufacturer name...">
                                 
-                                <div class="mt-2 d-flex align-items-center">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input" type="radio" name="name_match_type" id="name_match_contains" 
-                                               value="contains" {% if search_params.name_match_type != 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="name_match_contains">Contains</label>
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="name_match_type" id="name_match_contains" 
+                                                   value="contains" {% if search_params.name_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="name_match_type" id="name_match_startswith" 
+                                                   value="startswith" {% if search_params.name_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="name_match_type" id="name_match_exactly" 
+                                                   value="is_exactly" {% if search_params.name_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="name_match_type" id="name_match_regex" 
+                                                   value="regex" {% if search_params.name_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_match_regex">Regex</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="name_match_type" id="name_match_startswith" 
-                                               value="startswith" {% if search_params.name_match_type == 'startswith' %}checked{% endif %}>
-                                        <label class="form-check-label" for="name_match_startswith">Starts with</label>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="name_case_sensitive" id="name_case_sensitive_no" 
+                                                   value="no" {% if not search_params.name_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="name_case_sensitive" id="name_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.name_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="name_case_sensitive_yes">Case sensitive</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="mb-3">
-                                <label for="notes" class="form-label">Notes Contains:</label>
+                                <label for="notes" class="form-label">Notes:</label>
                                 <input type="text" id="notes" name="notes" class="form-control" 
                                        value="{{ search_params.notes }}" placeholder="Search in notes...">
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex flex-wrap">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_contains" 
+                                                   value="contains" {% if search_params.notes_match_type == 'contains' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_contains">Contains</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_startswith" 
+                                                   value="startswith" {% if search_params.notes_match_type == 'startswith' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_startswith">Starts with</label>
+                                        </div>
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_exactly" 
+                                                   value="is_exactly" {% if search_params.notes_match_type == 'is_exactly' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_exactly">Is exactly</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="notes_match_type" id="notes_match_regex" 
+                                                   value="regex" {% if search_params.notes_match_type == 'regex' %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_match_regex">Regex</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-2 ms-3">
+                                    <div class="d-flex">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="radio" name="notes_case_sensitive" id="notes_case_sensitive_no" 
+                                                   value="no" {% if not search_params.notes_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_case_sensitive_no">Case insensitive</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="notes_case_sensitive" id="notes_case_sensitive_yes" 
+                                                   value="yes" {% if search_params.notes_case_sensitive %}checked{% endif %}>
+                                            <label class="form-check-label" for="notes_case_sensitive_yes">Case sensitive</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
+                                                        
                             <div class="mb-3">
                                 <label class="form-label">Search Operator:</label>
                                 <div class="d-flex align-items-center">
@@ -202,33 +291,56 @@
                     {% endif %}
                     
                     {% if search_params.code %}
-                    <li>Code 
+                    <li>
+                        Code 
                         {% if search_params.code_match_type == 'contains' %}
                             contains
                         {% elif search_params.code_match_type == 'startswith' %}
                             starts with
                         {% elif search_params.code_match_type == 'is_exactly' %}
-                            is exactly (case sensitive)
+                            is exactly
+                        {% elif search_params.code_match_type == 'regex' %}
+                            matches regex
                         {% endif %}
                         "{{ search_params.code }}"
+                        ({% if search_params.code_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
                     </li>
                     {% endif %}
                     
                     {% if search_params.name %}
-                    <li>Name 
+                    <li>
+                        Name 
                         {% if search_params.name_match_type == 'contains' %}
                             contains
                         {% elif search_params.name_match_type == 'startswith' %}
                             starts with
+                        {% elif search_params.name_match_type == 'is_exactly' %}
+                            is exactly
+                        {% elif search_params.name_match_type == 'regex' %}
+                            matches regex
                         {% endif %}
                         "{{ search_params.name }}"
+                        ({% if search_params.name_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
                     </li>
                     {% endif %}
                     
                     {% if search_params.notes %}
-                    <li>Notes containing: "{{ search_params.notes }}"</li>
+                    <li>
+                        Notes 
+                        {% if search_params.notes_match_type == 'contains' %}
+                            contains
+                        {% elif search_params.notes_match_type == 'startswith' %}
+                            starts with
+                        {% elif search_params.notes_match_type == 'is_exactly' %}
+                            is exactly
+                        {% elif search_params.notes_match_type == 'regex' %}
+                            matches regex
+                        {% endif %}
+                        "{{ search_params.notes }}"
+                        ({% if search_params.notes_case_sensitive %}case sensitive{% else %}case insensitive{% endif %})
+                    </li>
                     {% endif %}
-                    
+                                        
                     {% if search_params.code or search_params.name or search_params.notes %}
                     <li>Search operator: <strong>{{ search_params.search_operator|upper }}</strong></li>
                     {% endif %}
@@ -327,20 +439,6 @@
                                     {% endif %}
                                 </a>
                             </th>
-                            <th>
-                                <a href="#" class="sort-link" data-sort="boxes">
-                                    Boxes
-                                    {% if search_params.sort_by == 'boxes' %}
-                                        {% if search_params.sort_dir == 'asc' %}
-                                            <i class="bi bi-sort-numeric-down sort-icon sort-active"></i>
-                                        {% else %}
-                                            <i class="bi bi-sort-numeric-up sort-icon sort-active"></i>
-                                        {% endif %}
-                                    {% else %}
-                                        <i class="bi bi-arrow-down-up sort-icon"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -351,7 +449,6 @@
                             <td>{{ manufacturer.country.name }}</td>
                             <td>{{ manufacturer.headstamp_count }}</td>
                             <td>{{ manufacturer.load_count }}</td>
-                            <td>{{ manufacturer.box_count }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -450,11 +547,19 @@
     function clearSearch() {
         // Reset all form fields
         document.getElementById('country_id').value = '';
+        
         document.getElementById('code').value = '';
         document.getElementById('code_match_contains').checked = true;
+        document.getElementById('code_case_sensitive_no').checked = true;
+        
         document.getElementById('name').value = '';
         document.getElementById('name_match_contains').checked = true;
+        document.getElementById('name_case_sensitive_no').checked = true;
+        
         document.getElementById('notes').value = '';
+        document.getElementById('notes_match_contains').checked = true;
+        document.getElementById('notes_case_sensitive_no').checked = true;
+        
         document.getElementById('search_operator_or').checked = true;
         
         // Reset sort parameters

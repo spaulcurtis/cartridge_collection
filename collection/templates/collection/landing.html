@@ -1,135 +1,99 @@
-{% extends 'collection/base.html' %}
+{% extends 'collection/ref_base.html' %}
 {% load static %}
 
 {% block title %}Curtis Collection{% endblock %}
 
-{% block extra_css %}
-<style>
-    body {
-        background-color: #f8f9fa;
-    }
-    .landing-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 3rem 1rem;
-    }
-    .header {
-        text-align: center;
-        margin-bottom: 3rem;
-    }
-    .logo {
-        max-width: 120px;
-        margin-bottom: 1rem;
-    }
-    .caliber-card {
-        transition: transform 0.2s, box-shadow 0.2s;
-        margin-bottom: 2rem;
-        border: none;
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    .caliber-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    .caliber-img {
-        height: 200px;
-        width: 100%;
-        object-fit: contain;
-        object-position: center;
-        max-width: 100%;
-        display: block;
-        background-color: #f8f9fa;
-    }
-    .card-footer {
-        background-color: transparent;
-        border-top: none;
-    }
-    .footer {
-        text-align: center;
-        margin-top: 3rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #dee2e6;
-        font-size: 0.9rem;
-        color: #6c757d;
-    }
-    .caliber-description {
-        min-height: 80px;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="landing-container">
-    <div class="header text-center">
-        <img src="{% static 'collection/images/djammo48.png' %}" alt="Cartridge Collection Logo" class="logo mb-3">
-        
-        <!-- Title -->
-        <h1 class="display-4">{{ collection_name }}</h1>
-        
-        <!-- Description -->
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-10">  <!-- This limits the width of the description -->
-                    <p class="lead text-muted">{{ collection_description|safe }}</p>
-                </div>
-            </div>
-        </div>
-    
-        <!-- Call to Action -->
-        <p class="lead text-muted mt-4">Select a caliber to explore the collection</p>
-    </div>
-        
-    <div class="row justify-content-center">
-        {% for caliber in calibers %}
-        <div class="col-md-4">
-            <div class="card caliber-card shadow-sm">
-                <img src="{% if caliber.image %}{{ caliber.image.url }}{% else %}{% static 'images/placeholder.png' %}{% endif %}" 
-                     alt="{{ caliber.name }} Collection" class="caliber-img">
-                <div class="card-body text-center">
-                    <h3 class="card-title">{{ caliber.name }}</h3>
-                    <p class="card-text text-muted">{{ caliber.artifact_count }} artifacts</p>
-                    <p class="card-text caliber-description">{{ caliber.description }}</p>
-                </div>
-                <div class="card-footer text-center">
-                    {% if caliber.is_active %}
-                    <a href="{% url 'dashboard' caliber.code %}" class="btn btn-primary btn-lg px-4">Enter Collection</a>
-                    {% else %}
-                    <a href="#" class="btn btn-outline-secondary btn-lg px-4">Coming Soon</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+{% block ref_content %}
+<!-- Hero Section -->
+<section class="hero-section text-center">
     <div class="container">
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav mx-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'admin:index' %}">
-                        <i class="bi bi-gear-fill"></i> Admin
-                    </a>
-                </li>                
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'user_guide' %}">
-                        <i class="bi bi-question-circle"></i> Documentation
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'support' %}">
-                        <i class="bi bi-telephone"></i> Support
-                    </a>
-                </li>
-
-            </ul>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <p class="lead mb-4">{{ collection_description|safe }}</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <a href="#calibers" class="btn btn-primary btn-lg px-4 me-2">Browse Collections</a>
+            <a href="#reference" class="btn btn-outline-secondary btn-lg px-4">Learn More</a>
         </div>
     </div>
-</nav>
+</section>
+
+<!-- Calibers Section -->
+<section id="calibers" class="calibers-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5">Explore Collections</h2>
+            <p class="lead text-muted">Select a specific collection to browse artifacts and detailed information</p>
+        </div>
+        
+        <div class="row">
+            {% for caliber in calibers %}
+            <div class="col-md-4 mb-4">
+                <div class="card caliber-card h-100">
+                    <div class="text-center p-3">
+                        <img src="{% if caliber.image %}{{ caliber.image.url }}{% else %}{% static 'images/placeholder.png' %}{% endif %}" 
+                             alt="{{ caliber.name }} Collection" class="caliber-img">
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="card-title">{{ caliber.name }}</h3>
+                        <div class="mb-2">
+                            <span class="badge bg-primary rounded-pill">{{ caliber.artifact_count }} artifacts</span>
+                        </div>
+                        <p class="card-text caliber-description">{{ caliber.description }}</p>
+                    </div>
+                    <div class="card-footer text-center">
+                        {% if caliber.is_active %}
+                        <a href="{% url 'dashboard' caliber.code %}" class="btn btn-primary">Enter Collection</a>
+                        {% else %}
+                        <a href="#" class="btn btn-outline-secondary">Coming Soon</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Information Sections (Placeholders for future content) -->
+<section id="reference" class="info-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5">Reference Materials</h2>
+            <p class="lead text-muted">Educational resources about ammunition and cartridge collecting</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h3 class="h4 mb-3">Headstamp Identification</h3>
+                        <p>Learn how to identify and classify different headstamp markings from manufacturers around the world.</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Coming Soon</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h3 class="h4 mb-3">Manufacturer History</h3>
+                        <p>Explore the history of ammunition manufacturers and their evolution through the years.</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Coming Soon</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h3 class="h4 mb-3">Cartridge Dating</h3>
+                        <p>Methods and techniques for determining the age and origin of ammunition artifacts in your collection.</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Coming Soon</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 {% endblock %}

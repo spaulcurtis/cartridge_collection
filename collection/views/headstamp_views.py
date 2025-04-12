@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Case, When, Subquery, OuterRef
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, HeadstampSource, Source
 from ..forms.headstamp_forms import HeadstampForm, HeadstampSourceForm, HeadstampMoveForm
@@ -253,6 +254,8 @@ def headstamp_detail(request, caliber_code, headstamp_id):
     return render(request, 'collection/headstamp_detail.html', context)
 
 
+@login_required
+@permission_required('collection.add_headstamp', raise_exception=True)
 def headstamp_create(request, caliber_code, manufacturer_id):
     """View for creating a new headstamp"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -299,6 +302,8 @@ def headstamp_create(request, caliber_code, manufacturer_id):
         'submit_text': 'Create Headstamp',
     })
 
+@login_required
+@permission_required('collection.change_headstamp', raise_exception=True)
 def headstamp_update(request, caliber_code, headstamp_id):
     """View for updating a headstamp"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -361,6 +366,8 @@ def headstamp_update(request, caliber_code, headstamp_id):
     })
 
 
+@login_required
+@permission_required('collection.delete_headstamp', raise_exception=True)
 def headstamp_delete(request, caliber_code, headstamp_id):
     """View for deleting a headstamp"""
     caliber = get_object_or_404(Caliber, code=caliber_code)

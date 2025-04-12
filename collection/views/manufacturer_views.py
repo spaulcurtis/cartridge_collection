@@ -3,6 +3,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Case, When, Subquery, OuterRef
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box
 from ..forms.manufacturer_forms import ManufacturerForm, ManufacturerMoveForm
@@ -275,6 +276,8 @@ def manufacturer_detail(request, caliber_code, manufacturer_id):
     
     return render(request, 'collection/manufacturer_detail.html', context)
 
+@login_required
+@permission_required('collection.add_manufacturer', raise_exception=True)
 def manufacturer_create(request, caliber_code, country_id):
     """View for creating a new manufacturer"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -318,7 +321,8 @@ def manufacturer_create(request, caliber_code, country_id):
         'submit_text': 'Create Manufacturer',
     })
 
-
+@login_required
+@permission_required('collection.change_manufacturer', raise_exception=True)
 def manufacturer_update(request, caliber_code, manufacturer_id):
     """View for updating a manufacturer"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
@@ -367,7 +371,8 @@ def manufacturer_update(request, caliber_code, manufacturer_id):
         'submit_text': 'Update Manufacturer',
     })
 
-
+@login_required
+@permission_required('collection.delete_manufacturer', raise_exception=True)
 def manufacturer_delete(request, caliber_code, manufacturer_id):
     """View for deleting a manufacturer"""
     caliber = get_object_or_404(Caliber, code=caliber_code)

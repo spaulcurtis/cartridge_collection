@@ -322,31 +322,51 @@ def get_current_caliber(request):
 
 def user_guide_view(request):
     """User guide view"""
-    context = {}
+
+    # Get collection info for the header
+    collection_info = CollectionInfo.get_solo()
     
-    # Get current caliber for navigation
-    caliber = get_current_caliber(request)
-    
-    # Add caliber to context
-    context['caliber'] = caliber
-    
-    # Get all calibers for dropdown
-    context['all_calibers'] = Caliber.objects.all().order_by('order')
+    context = {
+        # Add collection name for the header in ref_base.html
+        'collection_name': collection_info.name,
+        
+        # Include collection description if you need it (optional)
+        'collection_description': collection_info.description,
+    }
     
     return render(request, 'collection/user_guide.html', context)
 
 def support_view(request):
     """Support page view"""
-    context = {}
     
-    # Get current caliber for navigation
-    caliber = get_current_caliber(request)
+    # Get collection info for the header
+    collection_info = CollectionInfo.get_solo()
     
-    # Add caliber to context
-    context['caliber'] = caliber
-    
-    # Get all calibers for dropdown
-    context['all_calibers'] = Caliber.objects.all().order_by('order')
+    context = {
+        # Add collection name for the header in ref_base.html
+        'collection_name': collection_info.name,
+        
+        # Include collection description if you need it (optional)
+        'collection_description': collection_info.description,
+    }
     
     return render(request, 'collection/support.html', context)
 
+
+# class CollectionResourcesView(View):
+#     """View for displaying reference materials and collector resources"""
+    
+#     def get(self, request):
+#         # Get the global collection info
+#         collection_info = CollectionInfo.get_solo()
+        
+#         # Get all calibers for the dropdown
+#         calibers = Caliber.objects.all().order_by('order', 'name')
+        
+#         context = {
+#             'collection_name': collection_info.name,
+#             'calibers': calibers,
+#             # Add any additional context needed for resource pages
+#         }
+        
+#         return render(request, 'collection/resources.html', context)
