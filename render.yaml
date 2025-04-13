@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cartridge-collection
+    name: curtis-ammo
     env: python
     buildCommand: ./build.sh
     startCommand: gunicorn cartridge_collection.wsgi:application
@@ -13,9 +13,18 @@ services:
         value: ".onrender.com"
       - key: DATABASE_URL
         fromDatabase:
-          name: cartridge-db
+          name: cartridge-collection-db
           property: connectionString
+    disk:
+      name: media-disk
+      mountPath: /opt/render/project/src/media
+      sizeGB: 1
+    staticPublishPath: /opt/render/project/src/media
+    routes:
+      - type: rewrite
+        source: /media/*
+        destination: /media/*
 
 databases:
-  - name: cartridge-db
+  - name: cartridge-collection-db
     plan: starter
