@@ -381,58 +381,12 @@ def support_view(request):
 #         return render(request, 'collection/resources.html', context)
 
 
-# Get a logger
-logger = logging.getLogger(__name__)
-
-@cache_control(max_age=3600)
+@cache_control(max_age=3600)  # Cache for 1 hour
 def serve_media_file(request, path):
-    """View to serve media files directly from Django with enhanced logging"""
-    # Log the request path and media root for debugging
-    logger.error(f"Media request for path: {path}")
-    logger.error(f"MEDIA_ROOT setting is: {settings.MEDIA_ROOT}")
-    
-    # Construct file path and log it
+    """View to serve media files directly from Django"""
     file_path = os.path.join(settings.MEDIA_ROOT, path)
-    logger.error(f"Looking for file at: {file_path}")
     
-    # Check if the file exists and log the result
-    file_exists = os.path.exists(file_path)
-    is_file = os.path.isfile(file_path) if file_exists else False
-    logger.error(f"File exists: {file_exists}, Is file: {is_file}")
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(open(file_path, 'rb'))
     
-    # If the file exists, try to serve it
-    if file_exists and is_file:
-        try:
-            # Get file size
-            file_size = os.path.getsize(file_path)
-            logger.error(f"File size: {file_size} bytes")
-            
-            # Get content type
-            content_type, encoding = mimetypes.guess_type(file_path)
-            logger.error(f"Content type: {content_type}, Encoding: {encoding}")
-            
-            # Try a safer way to open the file
-            with open(file_path, 'rb') as f:
-                file_content = f.read()
-                logger.error(f"Successfully read file content, length: {len(file_content)} bytes")
-                
-                # Return as HttpResponse instead of FileResponse for testing
-                response = HttpResponse(file_content, content_type=content_type or 'application/octet-stream')
-                response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
-                response['Content-Length'] = str(file_size)
-                logger.error(f"Created response with content type: {response['Content-Type']}")
-                return response
-        except Exception as e:
-            # Log any errors that occur when opening the file
-            logger.error(f"Error serving file: {str(e)}")
-            return HttpResponse(f"Error serving file: {str(e)}", status=500)
-    else:
-        # Log that the file was not found
-        logger.error(f"File not found at path: {file_path}")
-        raise Http404(f"Media file {path} not found")
-
-# Simple test view that doesn't use files
-def test_media_response(request):
-    """A simple test view that returns a direct response without accessing files"""
-    logger.error("Test media response view called")
-    return HttpResponse("Media test response successful", content_type="text/plain")
+    raise Http404(f"Media file {path} not found")

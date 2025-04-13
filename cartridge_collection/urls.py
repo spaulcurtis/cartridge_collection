@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-from collection.views import serve_media_file, test_media_response  # Import the view
+from collection.views import serve_media_file  # Import the view
 
 
 
@@ -36,12 +36,6 @@ urlpatterns = [
     
     # Media serving URL pattern
     path('media/<path:path>', serve_media_file, name='serve_media'),
-    
-    # Test endpoint that doesn't use files
-    path('mediatest/', test_media_response, name='test_media_response'),
-    
-    # Alternative URL pattern in case 'media' is being intercepted
-    path('site_media/<path:path>', serve_media_file, name='alt_media'),
 ]
 
 # This will still be used in development

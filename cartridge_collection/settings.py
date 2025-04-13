@@ -179,33 +179,3 @@ if DEBUG:
 LOGIN_REDIRECT_URL = '/'  # Default redirect if no 'next' parameter
 LOGOUT_REDIRECT_URL = '/'  # Redirect to home page after logout
 
-# Media files configuration
-MEDIA_URL = '/media/'
-MEDIA_ROOT = '/opt/render/project/src/media'
-
-# Configure logging to see the detailed errors
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'ERROR',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-        'collection': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-    },
-}
