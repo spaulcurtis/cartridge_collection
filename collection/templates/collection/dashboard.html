@@ -322,6 +322,7 @@
             <h2 class="h4 mb-3">Quick Actions</h2>
         </div>
         
+        {% if user.is_authenticated and user.is_staff %}
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{% url 'add_artifact' caliber.code %}" class="action-card d-block">
                 <i class="bi bi-plus-circle action-icon"></i>
@@ -336,6 +337,7 @@
                 <p class="text-muted mb-0">Import records into collection</p>
             </a>
         </div>
+        {% endif %}
         
         <!-- Modified Advanced Search card for dashboard.html -->
         <div class="col-lg-3 col-md-6 mb-3">
@@ -351,6 +353,7 @@
             </div>
         </div>        
 
+        {% if user.is_authenticated and user.is_staff %}
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{% url 'import_images' caliber.code %}" class="action-card d-block">
                 <i class="bi bi-camera action-icon"></i>
@@ -358,6 +361,8 @@
                 <p class="text-muted mb-0">Import images into collection</p>
             </a>
         </div>
+        {% endif %}
+
     </div>
     
 </div>

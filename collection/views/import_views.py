@@ -6,6 +6,7 @@ import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404, HttpResponse
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db import connection
@@ -2322,7 +2323,8 @@ def import_boxes(cursor, dry_run):
         dry_run=dry_run
     )
 
-
+@login_required
+@permission_required('collection.change_headstamp', raise_exception=True)
 def import_records(request, caliber_code):
     """View for importing records from SQLite database"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
