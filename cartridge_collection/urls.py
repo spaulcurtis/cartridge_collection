@@ -23,11 +23,25 @@ from collection.views import serve_media_file  # Import the view
 
 
 
+# urlpatterns = [
+#     path('admin/', admin.site.urls),
+#     path('', include('collection.urls')),
+#     # Add a path for serving media files in production
+#     path('media/<path:path>', serve_media_file, name='serve_media'),
+# ]
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('collection.urls')),
-    # Add a path for serving media files in production
+    
+    # Media serving URL pattern
     path('media/<path:path>', serve_media_file, name='serve_media'),
+    
+    # Test endpoint that doesn't use files
+    path('mediatest/', test_media_response, name='test_media_response'),
+    
+    # Alternative URL pattern in case 'media' is being intercepted
+    path('site_media/<path:path>', serve_media_file, name='alt_media'),
 ]
 
 # This will still be used in development
