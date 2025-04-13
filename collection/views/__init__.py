@@ -1,5 +1,5 @@
 from .common_views import (
-    landing, dashboard, add_artifact, import_images, support_view, user_guide_view, serve_media_file,
+    landing, dashboard, add_artifact, import_images, support_view, user_guide_view, serve_media_file, test_media_response
 )
 
 from .search_views import (
