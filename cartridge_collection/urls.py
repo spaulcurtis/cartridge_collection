@@ -19,19 +19,23 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
+from collection.views import serve_media_file  # Import the view
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('collection.urls')),
-
+    # Add a path for serving media files in production
+    path('media/<path:path>', serve_media_file, name='serve_media'),
 ]
 
-# Add media URL handling for development
+# This will still be used in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     
-    # Add debug toolbar URLs if available
-    if 'debug_toolbar' in settings.INSTALLED_APPS:
-        import debug_toolbar
-        urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]
+
+# Add debug toolbar URLs if available
+if 'debug_toolbar' in settings.INSTALLED_APPS:
+    import debug_toolbar
+    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]

@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.views.decorators.cache import cache_control
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, LoadType, Date, Variation, Box, CollectionInfo
 
 def landing(request):
@@ -370,3 +371,13 @@ def support_view(request):
 #         }
         
 #         return render(request, 'collection/resources.html', context)
+
+
+@cache_control(max_age=3600)  # Cache for 1 hour
+def serve_media_file(request, path):
+    """View to serve media files directly from Django"""
+    file_path = os.path.join(settings.MEDIA_ROOT, path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(open(file_path, 'rb'))
+    raise Http404(f"Media file {path} not found")
+

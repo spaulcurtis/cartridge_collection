@@ -19,11 +19,6 @@ services:
       name: media-disk
       mountPath: /opt/render/project/src/media
       sizeGB: 1
-    staticPublishPath: /opt/render/project/src/media
-    routes:
-      - type: rewrite
-        source: /media/*
-        destination: /media/*
 
 databases:
   - name: cartridge-collection-db
