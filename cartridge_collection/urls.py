@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-from collection.views import serve_media_file  # Import the view
+from collection.views import serve_media_file, test_media_response  # Import the view
 
 
 
