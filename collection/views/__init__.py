@@ -44,5 +44,5 @@ from .import_views import (
 )
 
 from .ref_views import (
-    nine_mm_guide,
+    nine_mm_guide, collection_highlights
 )

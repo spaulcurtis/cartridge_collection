@@ -1,0 +1,47 @@
+{% extends 'collection/ref_base.html' %}
+{% load static %}
+
+{% block title %}Collection Highlights{% endblock %}
+
+{% block ref_content %}
+
+
+<div class="container ref-content">
+    <div class="page-title-container text-center">
+        <h1 class="display-4">Collection Highlights</h1>
+        <p class="text-muted">A showcase of standout artifacts, rare specimens, and historical milestones.</p>
+    </div>
+
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-5">
+                    <h1 class="display-6 mb-4">Under Construction</h1>
+                    <div class="display-1 mb-4 text-muted">
+                        <i class="bi bi-hammer"></i>
+                    </div>
+                    <p class="lead">{{ message }}</p>
+                    
+                    {% if caliber %}
+                    <div class="mt-4">
+                        <a href="{% url 'dashboard' caliber.code %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i> Return to Dashboard
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="mt-4">
+                        <a href="{% url 'landing' %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i> Return to Home
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -104,6 +104,8 @@ urlpatterns = [
 
     # Reference material URLs
     path('reference/9mm-guide/', views.nine_mm_guide, name='nine_mm_guide'),
+    path('reference/highlights/', views.collection_highlights, name='collection_highlights'),
+
 
 ]
 

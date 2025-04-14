@@ -212,7 +212,7 @@
             
             <!-- Middle column: Load Details -->
             <div class="col-md-5">
-                <h2>{{ load.cart_id }}{% if load.description %} - {{ load.description|truncatechars:30 }}{% endif %}</h2>
+                <h2>{{ load.cart_id }}{% if load.description %} - {{ load.description|truncatechars:20 }}{% endif %}</h2>
                 
                 <div class="load-data mt-3">
                     <div class="row mb-2">
@@ -300,6 +300,13 @@
                             {% else %}
                             {{ load.get_cc_display }}
                             {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 data-label">Description:</div>
+                        <div class="col-md-8 data-value">
+                            {{ load.description }}
                         </div>
                     </div>
                     
