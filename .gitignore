@@ -17,6 +17,11 @@ data_migration/output
 # Static files collected by collectstatic
 /staticfiles/
 
+# Large reference docs
+collection/static/collection/docs/British_Treatise_on_Ammunition-1915.pdf
+
+# For now, don't git my local management commands
+collection/management/
 
 #VS Code stuff:
 .VSCodeCounter/
