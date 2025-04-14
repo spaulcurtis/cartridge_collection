@@ -102,5 +102,8 @@ urlpatterns = [
     path('<str:caliber_code>/documentation/user-guide/', views.user_guide_view, name='user_guide_with_caliber'),
     path('<str:caliber_code>/documentation/support/', views.support_view, name='support_with_caliber'),
 
+    # Reference material URLs
+    path('reference/9mm-guide/', views.nine_mm_guide, name='nine_mm_guide'),
+
 ]
 

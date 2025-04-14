@@ -258,7 +258,6 @@
                 <h5 class="footer-heading">Explore</h5>
                 <a href="{% url 'landing' %}#calibers" class="footer-link">Collections</a>
                 <a href="#" class="footer-link">Reference</a>
-                <a href="#" class="footer-link">Guides</a>
                 {% if user.is_authenticated and user.is_staff %}
                 <a href="{% url 'admin:index' %}" class="footer-link">Admin</a>
                 {% endif %}
