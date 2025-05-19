@@ -1,4 +1,4 @@
-Add a country description, and display it on the right on country_details view.
+Add a country description, and display it on the right on country_details view. DONE
 Add a legacy_id.  For now it is unused, but there if anyone needs it in the future.  We could use it for mismarked cartridges.
 
 

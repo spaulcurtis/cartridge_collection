@@ -43,6 +43,7 @@ def headstamp_detail(request, caliber_code, headstamp_id):
     # Find other manufacturers with the same headstamp code
     other_manufacturers = Manufacturer.objects.filter(
         headstamps__code=headstamp.code,
+        country__caliber=caliber,  # Add this line to constrain by current caliber
         id__isnull=False  # Ensure id is not null
     ).exclude(
         id=manufacturer.id

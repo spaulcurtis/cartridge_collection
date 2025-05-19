@@ -372,14 +372,14 @@ class Caliber(models.Model):
 class Country(BaseEntity):
     """Country model - represents countries of origin"""
     caliber = models.ForeignKey(Caliber, on_delete=models.CASCADE)
-    name = models.CharField("Country Code/Name", max_length=100, unique=True)
+    name = models.CharField("Country Code/Name", max_length=100)
     full_name = models.CharField("Full Country Name", max_length=255, blank=True, null=True)
     short_name = models.CharField("Short Country Name", max_length=8, blank=True, null=True)
     description = models.TextField("Country Description", blank=True, null=True)
 
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.caliber.code})"
     
     def total_box_count(self):
         """Count boxes under this country and all its children"""
@@ -395,7 +395,8 @@ class Country(BaseEntity):
     
     class Meta:
         verbose_name_plural = "Countries"
-        ordering = ['name']
+        ordering = ['caliber__code', 'name']
+        unique_together = [['caliber', 'name']]
 
 class Manufacturer(BaseEntity):
     """Manufacturer model - represents cartridge manufacturers"""
@@ -404,7 +405,10 @@ class Manufacturer(BaseEntity):
     country = models.ForeignKey(Country, on_delete=models.PROTECT)
     
     def __str__(self):
-        return f"{self.code}" if not self.name else f"{self.code} - {self.name}"
+        if not self.name:
+            return f"{self.code} ({self.country.caliber.code})"
+        else:
+            return f"{self.code} - {self.name} ({self.country.caliber.code})"
     
     def total_box_count(self):
         """Count boxes under this manufacturer and all its children"""
@@ -419,7 +423,7 @@ class Manufacturer(BaseEntity):
         return count
     
     class Meta:
-        ordering = ['country__name', 'code']
+        ordering = ['country__caliber__code', 'country__name', 'code']
         unique_together = [['code', 'country']]
 
 class Headstamp(models.Model):
@@ -460,7 +464,11 @@ class Headstamp(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.code}" if not self.name else f"{self.code} - {self.name}"
+        caliber_code = self.manufacturer.country.caliber.code
+        if not self.name:
+            return f"{self.code} ({caliber_code})"
+        else:
+            return f"{self.code} - {self.name} ({caliber_code})"
     
     def image_count(self):
         """Return 1 if this item has an image, 0 otherwise"""
@@ -523,7 +531,8 @@ class HeadstampSource(models.Model):
 
 class Load(BaseCollectionItem):
     """Load model - represents cartridges in the collection"""
-    cart_id = models.CharField("Cartridge ID", max_length=20, unique=True)
+    # Remove unique=True from cart_id
+    cart_id = models.CharField("Cartridge ID", max_length=20)
     load_type = models.ForeignKey(LoadType, on_delete=models.PROTECT, related_name='loads')
     bullet = models.ForeignKey(BulletType, on_delete=models.PROTECT, related_name='loads', blank=True, null=True)
     is_magnetic = models.BooleanField("Is Magnetic", default=False)
@@ -532,8 +541,13 @@ class Load(BaseCollectionItem):
     pa_color = models.ForeignKey(PAColor, on_delete=models.PROTECT, related_name='loads', blank=True, null=True)
     headstamp = models.ForeignKey(Headstamp, on_delete=models.PROTECT, related_name='loads')
     
+    def get_caliber(self):
+        """Get the caliber for this load"""
+        return self.headstamp.manufacturer.country.caliber
+    
     def __str__(self):
-        return self.cart_id
+        caliber_code = self.headstamp.manufacturer.country.caliber.code
+        return f"{self.cart_id} ({caliber_code})"
     
     def total_image_count(self):
         """Include images from this load and all its descendants"""
@@ -576,17 +590,62 @@ class Load(BaseCollectionItem):
         """Get all sources for this load"""
         return Source.objects.filter(loadsource__load=self)
     
+    def clean(self):
+        # Validate that cart_id is unique within this caliber
+        if self.cart_id and hasattr(self, 'headstamp') and self.headstamp:
+            caliber = self.headstamp.manufacturer.country.caliber
+            existing_loads = Load.objects.filter(
+                cart_id=self.cart_id,
+                headstamp__manufacturer__country__caliber=caliber
+            )
+            
+            # Exclude self when checking for duplicates (for updates)
+            if self.pk:
+                existing_loads = existing_loads.exclude(pk=self.pk)
+                
+            if existing_loads.exists():
+                raise ValidationError({
+                    'cart_id': f"Load with cart_id '{self.cart_id}' already exists in caliber {caliber.code}"
+                })
+    
     def save(self, *args, **kwargs):
+        # Run validation
+        self.clean()
+        
         # Automatically generate cart_id if not provided
         if not self.cart_id and not self.pk:
-            # Get the next available ID
-            last_load = Load.objects.order_by('-pk').first()
-            next_id = (last_load.pk + 1) if last_load else 1
-            self.cart_id = f"L{next_id}"
+            # Get the caliber
+            caliber = self.get_caliber()
+            
+            # Find the highest cart_id for this caliber
+            prefix = "L"
+            max_id = 0
+            
+            # Look for existing cart_ids with the same prefix in this caliber
+            existing_ids = Load.objects.filter(
+                cart_id__startswith=prefix,
+                headstamp__manufacturer__country__caliber=caliber
+            ).values_list('cart_id', flat=True)
+            
+            # Extract numeric parts and find max
+            for existing_id in existing_ids:
+                try:
+                    numeric_part = int(existing_id[len(prefix):])
+                    max_id = max(max_id, numeric_part)
+                except (ValueError, IndexError):
+                    pass
+            
+            # Increment and create new ID
+            next_id = max_id + 1
+            self.cart_id = f"{prefix}{next_id}"
+            
         super().save(*args, **kwargs)
     
     class Meta:
-        ordering = ['headstamp__manufacturer__country__name', 'headstamp__code', 'cart_id']
+        ordering = ['headstamp__manufacturer__country__caliber__code', 'headstamp__manufacturer__country__name', 'headstamp__code', 'cart_id']
+        # We'll use the clean() method for validation instead of a database constraint
+        # This is safer as Django doesn't support deep relationship lookups in constraints
+
 
 class LoadSource(models.Model):
     """Link between loads and sources"""
@@ -603,13 +662,19 @@ class LoadSource(models.Model):
 
 class Date(BaseCollectionItem):
     """Date model - represents date/lot instances of loads"""
-    cart_id = models.CharField("Date/Lot ID", max_length=20, unique=True)
+    # Remove unique=True from cart_id
+    cart_id = models.CharField("Date/Lot ID", max_length=20)
     year = models.CharField("Year", max_length=10, blank=True, null=True)
     lot_month = models.CharField("Lot/Month", max_length=50, blank=True, null=True)
     load = models.ForeignKey(Load, on_delete=models.PROTECT, related_name='dates')
     
+    def get_caliber(self):
+        """Get the caliber for this date"""
+        return self.load.headstamp.manufacturer.country.caliber
+    
     def __str__(self):
-        return self.cart_id
+        caliber_code = self.load.headstamp.manufacturer.country.caliber.code
+        return f"{self.cart_id} ({caliber_code})"
     
     def total_image_count(self):
         """Include images from this date and all its descendants"""
@@ -644,17 +709,61 @@ class Date(BaseCollectionItem):
         """Get all sources for this date"""
         return Source.objects.filter(datesource__date=self)
     
+    def clean(self):
+        """Validate that cart_id is unique within this caliber"""
+        if self.cart_id and hasattr(self, 'load') and self.load:
+            caliber = self.get_caliber()
+            existing_dates = Date.objects.filter(
+                cart_id=self.cart_id,
+                load__headstamp__manufacturer__country__caliber=caliber
+            )
+            
+            # Exclude self when checking for duplicates (for updates)
+            if self.pk:
+                existing_dates = existing_dates.exclude(pk=self.pk)
+                
+            if existing_dates.exists():
+                raise ValidationError({
+                    'cart_id': f"Date with cart_id '{self.cart_id}' already exists in caliber {caliber.code}"
+                })
+    
     def save(self, *args, **kwargs):
+        # Run validation
+        self.clean()
+        
         # Automatically generate cart_id if not provided
         if not self.cart_id and not self.pk:
-            # Get the next available ID
-            last_date = Date.objects.order_by('-pk').first()
-            next_id = (last_date.pk + 1) if last_date else 1
-            self.cart_id = f"D{next_id}"
+            # Get the caliber
+            caliber = self.get_caliber()
+            
+            # Find the highest cart_id for this caliber
+            prefix = "D"
+            max_id = 0
+            
+            # Look for existing cart_ids with the same prefix in this caliber
+            existing_ids = Date.objects.filter(
+                cart_id__startswith=prefix,
+                load__headstamp__manufacturer__country__caliber=caliber
+            ).values_list('cart_id', flat=True)
+            
+            # Extract numeric parts and find max
+            for existing_id in existing_ids:
+                try:
+                    numeric_part = int(existing_id[len(prefix):])
+                    max_id = max(max_id, numeric_part)
+                except (ValueError, IndexError):
+                    pass
+            
+            # Increment and create new ID
+            next_id = max_id + 1
+            self.cart_id = f"{prefix}{next_id}"
+            
+        # Continue with the original save
         super().save(*args, **kwargs)
     
     class Meta:
-        ordering = ['load__headstamp__manufacturer__country__name', 'load__cart_id', 'year', 'lot_month']
+        ordering = ['load__headstamp__manufacturer__country__caliber__code', 'load__headstamp__manufacturer__country__name', 'load__cart_id', 'year', 'lot_month']
+
 
 class DateSource(models.Model):
     """Link between dates and sources"""
@@ -671,17 +780,49 @@ class DateSource(models.Model):
 
 class Variation(BaseCollectionItem):
     """Variation model - represents variations of loads or dates"""
-    cart_id = models.CharField("Variation ID", max_length=20, unique=True)
+    # Remove unique=True from cart_id
+    cart_id = models.CharField("Variation ID", max_length=20)
     load = models.ForeignKey(Load, on_delete=models.PROTECT, blank=True, null=True, related_name='load_variations')
     date = models.ForeignKey(Date, on_delete=models.PROTECT, blank=True, null=True, related_name='date_variations')
     
+    def get_caliber(self):
+        """Get the caliber for this variation"""
+        if self.load:
+            return self.load.headstamp.manufacturer.country.caliber
+        elif self.date:
+            return self.date.load.headstamp.manufacturer.country.caliber
+        return None
+    
     def __str__(self):
-        return self.cart_id
+        caliber = self.get_caliber()
+        caliber_code = caliber.code if caliber else "unknown"
+        return f"{self.cart_id} ({caliber_code})"
     
     def clean(self):
         """Ensure either load or date is set, but not both"""
         if (self.load and self.date) or (not self.load and not self.date):
             raise ValidationError("Variation must have either load or date set, but not both")
+        
+        # Validate that cart_id is unique within this caliber
+        if self.cart_id:
+            caliber = self.get_caliber()
+            if caliber:
+                # Find variations with the same cart_id in this caliber
+                existing_variations = Variation.objects.filter(
+                    cart_id=self.cart_id
+                ).filter(
+                    models.Q(load__headstamp__manufacturer__country__caliber=caliber) | 
+                    models.Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+                )
+                
+                # Exclude self when checking for duplicates (for updates)
+                if self.pk:
+                    existing_variations = existing_variations.exclude(pk=self.pk)
+                    
+                if existing_variations.exists():
+                    raise ValidationError({
+                        'cart_id': f"Variation with cart_id '{self.cart_id}' already exists in caliber {caliber.code}"
+                    })
     
     def add_source(self, source, date=None, note=None):
         """Add a source to this variation"""
@@ -702,14 +843,46 @@ class Variation(BaseCollectionItem):
         
         # Automatically generate cart_id if not provided
         if not self.cart_id and not self.pk:
-            # Get the next available ID
-            last_var = Variation.objects.order_by('-pk').first()
-            next_id = (last_var.pk + 1) if last_var else 1
-            self.cart_id = f"V{next_id}"
+            # Get the caliber
+            caliber = self.get_caliber()
+            
+            # Find the highest cart_id for this caliber
+            prefix = "V"
+            max_id = 0
+            
+            if caliber:
+                # Look for existing cart_ids with the same prefix in this caliber
+                existing_variations = Variation.objects.filter(
+                    models.Q(load__headstamp__manufacturer__country__caliber=caliber) | 
+                    models.Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+                )
+                
+                for variation in existing_variations:
+                    if variation.cart_id.startswith(prefix):
+                        try:
+                            numeric_part = int(variation.cart_id[len(prefix):])
+                            max_id = max(max_id, numeric_part)
+                        except (ValueError, IndexError):
+                            pass
+            else:
+                # Fallback if caliber can't be determined
+                existing_ids = Variation.objects.filter(cart_id__startswith=prefix).values_list('cart_id', flat=True)
+                for existing_id in existing_ids:
+                    try:
+                        numeric_part = int(existing_id[len(prefix):])
+                        max_id = max(max_id, numeric_part)
+                    except (ValueError, IndexError):
+                        pass
+            
+            # Increment and create new ID
+            next_id = max_id + 1
+            self.cart_id = f"{prefix}{next_id}"
+                
         super().save(*args, **kwargs)
     
     class Meta:
         ordering = ['cart_id']
+
 
 class VariationSource(models.Model):
     """Link between variations and sources"""
@@ -726,7 +899,8 @@ class VariationSource(models.Model):
 
 class Box(BaseCollectionItem):
     """Box model - represents boxes and other container artifacts"""
-    bid = models.CharField("Box ID", max_length=20, unique=True)
+    # Remove unique=True from bid
+    bid = models.CharField("Box ID", max_length=20)
     location = models.CharField("Physical Location", max_length=255, blank=True, null=True)
     art_type = models.CharField("Artifact Type", max_length=50, choices=ARTIFACT_TYPE_CHOICES, default='box')
     art_type_other = models.CharField("Other Artifact Type", max_length=100, blank=True, null=True,
@@ -738,7 +912,12 @@ class Box(BaseCollectionItem):
     parent = GenericForeignKey('content_type', 'object_id')
     
     def __str__(self):
-        return f"{self.bid}" if not self.description else f"{self.bid} - {self.description}"
+        caliber = self.parent_caliber()
+        caliber_code = caliber.code if caliber else "unknown"
+        if not self.description:
+            return f"{self.bid} ({caliber_code})"
+        else:
+            return f"{self.bid} - {self.description} ({caliber_code})"
     
     def add_source(self, source, date=None, note=None):
         """Add a source to this box"""
@@ -753,22 +932,69 @@ class Box(BaseCollectionItem):
         """Get all sources for this box"""
         return Source.objects.filter(boxsource__box=self)
     
+    def clean(self):
+        """Validate that bid is unique within this caliber"""
+        if self.bid and hasattr(self, 'content_type') and hasattr(self, 'object_id'):
+            caliber = self.parent_caliber()
+            if caliber:
+                # Find all boxes with the same bid
+                existing_boxes = Box.objects.filter(bid=self.bid)
+                
+                # Exclude self when checking for duplicates (for updates)
+                if self.pk:
+                    existing_boxes = existing_boxes.exclude(pk=self.pk)
+                
+                # Check each box to see if it has the same caliber
+                for box in existing_boxes:
+                    box_caliber = box.parent_caliber()
+                    if box_caliber and box_caliber == caliber:
+                        raise ValidationError({
+                            'bid': f"Box with bid '{self.bid}' already exists in caliber {caliber.code}"
+                        })
+    
     def save(self, *args, **kwargs):
+        # Run validation
+        self.clean()
+        
         # Automatically generate bid if not provided
-        if not self.pk:
-            # Get the next available ID
-            last_box = Box.objects.order_by('-pk').first()
-            next_id = (last_box.pk + 1) if last_box else 1
-            self.bid = f"B{next_id}"
+        if not self.bid and not self.pk:
+            # Get the caliber
+            caliber = self.parent_caliber()
+            
+            # Find the highest bid for this caliber
+            prefix = "B"
+            max_id = 0
+            
+            if caliber:
+                # Find all boxes in this caliber
+                all_boxes = Box.objects.all()
+                for box in all_boxes:
+                    if box.parent_caliber() == caliber and box.bid.startswith(prefix):
+                        try:
+                            numeric_part = int(box.bid[len(prefix):])
+                            max_id = max(max_id, numeric_part)
+                        except (ValueError, IndexError):
+                            pass
+            else:
+                # Fallback if caliber can't be determined
+                existing_ids = Box.objects.filter(bid__startswith=prefix).values_list('bid', flat=True)
+                for existing_id in existing_ids:
+                    try:
+                        numeric_part = int(existing_id[len(prefix):])
+                        max_id = max(max_id, numeric_part)
+                    except (ValueError, IndexError):
+                        pass
+            
+            # Increment and create new ID
+            next_id = max_id + 1
+            self.bid = f"{prefix}{next_id}"
+            
         super().save(*args, **kwargs)
     
     def parent_caliber(self):
         """
         Determines which caliber this box belongs to by traversing the parent relationship.
         """
-        from django.contrib.contenttypes.models import ContentType
-        from .models import Country, Manufacturer, Headstamp, Load, Date, Variation, Caliber
-        
         if not hasattr(self, 'content_type') or not hasattr(self, 'object_id'):
             return None
         
@@ -780,17 +1006,17 @@ class Box(BaseCollectionItem):
             return None
         
         # Find the caliber based on the parent object type
-        if parent_model == Country:
+        if parent_model.__name__ == 'Country':
             return parent_obj.caliber
-        elif parent_model == Manufacturer:
+        elif parent_model.__name__ == 'Manufacturer':
             return parent_obj.country.caliber
-        elif parent_model == Headstamp:
+        elif parent_model.__name__ == 'Headstamp':
             return parent_obj.manufacturer.country.caliber
-        elif parent_model == Load:
+        elif parent_model.__name__ == 'Load':
             return parent_obj.headstamp.manufacturer.country.caliber
-        elif parent_model == Date:
+        elif parent_model.__name__ == 'Date':
             return parent_obj.load.headstamp.manufacturer.country.caliber
-        elif parent_model == Variation:
+        elif parent_model.__name__ == 'Variation':
             # Handle both types of variations
             if parent_obj.load:
                 return parent_obj.load.headstamp.manufacturer.country.caliber
@@ -810,24 +1036,27 @@ class Box(BaseCollectionItem):
         
         try:
             parent_obj = parent_model.objects.get(pk=self.object_id)
+            caliber = self.parent_caliber()
+            caliber_code = caliber.code if caliber else "unknown"
             
             # First check for cart_id which is used by Load, Date, and Variation
             if hasattr(parent_obj, 'cart_id') and parent_obj.cart_id:
-                return parent_obj.cart_id
+                return f"{parent_obj.cart_id} ({caliber_code})"
             # Then name for Country, possibly Manufacturer 
             elif hasattr(parent_obj, 'name') and parent_obj.name:
-                return parent_obj.name
+                return f"{parent_obj.name} ({caliber_code})"
             # Then code for Headstamp, Manufacturer
             elif hasattr(parent_obj, 'code') and parent_obj.code:
-                return parent_obj.code
+                return f"{parent_obj.code} ({caliber_code})"
             else:
-                return f"{parent_model.__name__} #{parent_obj.pk}"
+                return f"{parent_model.__name__} #{parent_obj.pk} ({caliber_code})"
         except parent_model.DoesNotExist:
             return "Not Found"
         
     class Meta:
         ordering = ['bid']
 
+        
 class BoxSource(models.Model):
     """Link between boxes and sources"""
     box = models.ForeignKey(Box, on_delete=models.CASCADE)
