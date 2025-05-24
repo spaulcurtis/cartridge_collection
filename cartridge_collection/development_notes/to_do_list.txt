@@ -9,17 +9,17 @@ Prep Photos for import DONE
 WEDNESDAY/THURSDAY
 Photo import, by hook or by crook DONE
 Add a Move button to move Manufacturer, Headstamp, Load, Date, Variation, or Box in hierarchy DONE FOR ALL BUT DATE/VAR
-Update Documentation and support pages
+Update Documentation and support pages DONE
 Enhance Headstamp Search DONE
 
 
 FRIDAY
-Get Poppy's computer and migrate him to the new program.
-Import database
-Import images
+Get Poppy's computer and migrate him to the new program. DONE
+Import database DONE
+Import images DONE
 Change the model save code for non-unique cart_id/bid.  Add unique constraint in clean() and save()
-Fix/Update countries, add descriptions and short_names and long_names
-Test with new monitor
+Fix/Update countries, add descriptions and short_names and long_names DONE
+Test with new monitor DONE
 
 AFTER POPPY DROP
 Decide on how to add new sources and manage sourced.  Decide on Caliber UX
@@ -29,7 +29,7 @@ Decide on how to add new sources and manage sourced.  Decide on Caliber UX
     - Source Detail includes all references in each caliber.
 Decide if you get to Source Create from other create/edit models.
 
-Advanced search
+Advanced search DONE
 
 Image View/Editor and productized import
 

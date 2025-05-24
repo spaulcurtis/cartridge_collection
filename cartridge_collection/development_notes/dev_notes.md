@@ -1,4 +1,17 @@
-# Building a new one from the ground up.
+# Cartridge Collection
+
+## Render Deployment
+
+The service is now deployed on render as curtis-ammo.onrender.com.  It auto-deploys from GitHub spaulcurtis/cartridge_collection.  Thewre is the curtis-ammo Web Service (Starter, 0.5 CPU, 512MB) and the PostgreSQL database cartridge-collection-db (Basic-256mb, 256MB RAM, 0.1 CPU, 1GB Storage).
+
+### Render Details
+
+I should add notes about how the steps in setting up and monitoring Render deployment.
+
+## Local Development Environment
+
+For local development on MacBook, things are set up to run by default with PostgreSQL
+
 
 ## To Do list
 
@@ -52,7 +65,7 @@ I recommend the second approach for several reasons:
 
 '''
 
-6. Updat eviews to filter by the active caliber:
+6. Update eviews to filter by the active caliber:
 
 '''
 

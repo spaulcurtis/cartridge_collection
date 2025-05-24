@@ -292,17 +292,11 @@ class BaseCollectionItem(models.Model):
         
         # Get the path that would be generated
         desired_name = common_collection_image_path(self, self.image.name)
-        
-        # Print debugging info
-        print(f"Model: {model_name}, Original name: {self.image.name}")
-        print(f"Desired path: {desired_name}")
-        
+                
         # Check if this file already exists in MEDIA_ROOT
         full_path = os.path.join(settings.MEDIA_ROOT, desired_name)
-        print(f"Checking if file exists at: {full_path}")
         
         if os.path.exists(full_path):
-            print(f"File exists! Setting image.name to: {desired_name}")
             
             # For uploaded files, we need a more aggressive approach
             if hasattr(self.image, 'file'):
@@ -313,15 +307,12 @@ class BaseCollectionItem(models.Model):
             else:
                 # For already saved string paths
                 self.image.name = desired_name
-                
-            print(f"After setting: image = {self.image}, image.name = {getattr(self.image, 'name', None)}")
-    
+
 
     def save(self, *args, **kwargs):
         # Check for duplicate images
         self.check_duplicate_image()
         
-        print (self.image.name)
         super().save(*args, **kwargs)
 
     def image_count(self):
