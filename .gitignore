@@ -20,9 +20,6 @@ data_migration/output
 # Large reference docs
 collection/static/collection/docs/British_Treatise_on_Ammunition-1915.pdf
 
-# For now, don't git my local management commands
-collection/management/
-
 #VS Code stuff:
 .VSCodeCounter/
 
