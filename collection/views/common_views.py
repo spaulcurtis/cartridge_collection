@@ -75,8 +75,9 @@ def landing(request):
 
     return render(request, 'collection/landing.html', context)
 
+
 def dashboard(request, caliber_code):
-    """Dashboard for a specific caliber with dynamically calculated statistics"""
+    """Dashboard for a specific caliber with optimized statistics queries"""
     # Get the current caliber
     caliber = get_object_or_404(Caliber, code=caliber_code)
     
@@ -87,69 +88,50 @@ def dashboard(request, caliber_code):
     # Get all calibers for the dropdown
     all_calibers = Caliber.objects.all().order_by('order', 'name')
     
-    # Calculate statistics for this caliber using efficient queries
+    # Calculate statistics using optimized queries
     stats = {}
     
-    # Count countries
-    stats['countries'] = Country.objects.filter(caliber=caliber).count()
-    
-    # Count manufacturers
-    stats['manufacturers'] = Manufacturer.objects.filter(country__caliber=caliber).count()
-    
-    # Count headstamps and headstamp images
-    headstamp_stats = Headstamp.objects.filter(
-        manufacturer__country__caliber=caliber
-    ).aggregate(
-        count=Count('id'),
-        image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
+    # Single query for countries, manufacturers, headstamps, and headstamp images
+    basic_counts = Country.objects.filter(caliber=caliber).aggregate(
+        countries=Count('id'),
+        manufacturers=Count('manufacturer', distinct=True),
+        headstamps=Count('manufacturer__headstamps', distinct=True),
+        headstamp_images=Count('manufacturer__headstamps__id', 
+                              filter=~Q(manufacturer__headstamps__image='') & 
+                                     ~Q(manufacturer__headstamps__image=None), 
+                              distinct=True)
     )
-    stats['headstamps'] = headstamp_stats['count']
-    stats['headstamp_images'] = headstamp_stats['image_count']
     
-    # Count loads and load images
+    # Single query for load stats
     load_stats = Load.objects.filter(
         headstamp__manufacturer__country__caliber=caliber
     ).aggregate(
         count=Count('id'),
         image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
     )
-    stats['loads'] = load_stats['count']
-    stats['load_images'] = load_stats['image_count']
     
-    # Count dates and date images
+    # Single query for date stats
     date_stats = Date.objects.filter(
         load__headstamp__manufacturer__country__caliber=caliber
     ).aggregate(
         count=Count('id'),
         image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
     )
-    stats['dates'] = date_stats['count']
-    stats['date_images'] = date_stats['image_count']
     
-    # Count load variations and images
-    load_var_stats = Variation.objects.filter(
-        load__headstamp__manufacturer__country__caliber=caliber,
-        load__isnull=False
+    # Single query for all variation stats (both load and date variations)
+    variation_stats = Variation.objects.filter(
+        Q(load__headstamp__manufacturer__country__caliber=caliber) |
+        Q(date__load__headstamp__manufacturer__country__caliber=caliber)
     ).aggregate(
-        count=Count('id'),
-        image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
+        load_variations=Count('id', filter=Q(load__isnull=False)),
+        load_var_images=Count('id', filter=Q(load__isnull=False) & 
+                                            ~Q(image='') & ~Q(image=None)),
+        date_variations=Count('id', filter=Q(date__isnull=False)),
+        date_var_images=Count('id', filter=Q(date__isnull=False) & 
+                                             ~Q(image='') & ~Q(image=None))
     )
-    stats['load_variations'] = load_var_stats['count']
-    stats['load_variation_images'] = load_var_stats['image_count']
     
-    # Count date variations and images
-    date_var_stats = Variation.objects.filter(
-        date__load__headstamp__manufacturer__country__caliber=caliber,
-        date__isnull=False
-    ).aggregate(
-        count=Count('id'),
-        image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
-    )
-    stats['date_variations'] = date_var_stats['count']
-    stats['date_variation_images'] = date_var_stats['image_count']
-    
-    # Count boxes and box images
-    # Get ContentType IDs for box queries
+    # Get ContentType objects for box queries
     from django.contrib.contenttypes.models import ContentType
     country_content_type = ContentType.objects.get_for_model(Country)
     manufacturer_content_type = ContentType.objects.get_for_model(Manufacturer)
@@ -158,50 +140,53 @@ def dashboard(request, caliber_code):
     date_content_type = ContentType.objects.get_for_model(Date)
     variation_content_type = ContentType.objects.get_for_model(Variation)
     
-    # Get IDs at each level
-    country_ids = Country.objects.filter(caliber=caliber).values_list('id', flat=True)
-    manufacturer_ids = Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True)
-    headstamp_ids = Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    load_ids = Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    date_ids = Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    load_var_ids = Variation.objects.filter(
+    # Get IDs for box query (optimized with single queries)
+    country_ids = list(Country.objects.filter(caliber=caliber).values_list('id', flat=True))
+    manufacturer_ids = list(Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True))
+    headstamp_ids = list(Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True))
+    load_ids = list(Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True))
+    date_ids = list(Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True))
+    
+    # Get variation IDs (both types)
+    load_var_ids = list(Variation.objects.filter(
         load__headstamp__manufacturer__country__caliber=caliber, 
         load__isnull=False
-    ).values_list('id', flat=True)
-    date_var_ids = Variation.objects.filter(
+    ).values_list('id', flat=True))
+    date_var_ids = list(Variation.objects.filter(
         date__load__headstamp__manufacturer__country__caliber=caliber, 
         date__isnull=False
-    ).values_list('id', flat=True)
+    ).values_list('id', flat=True))
     
-    # Count boxes at each level using a combined query
+    # Single query for box stats
     box_stats = Box.objects.filter(
-        # Country level boxes
         Q(content_type=country_content_type, object_id__in=country_ids) |
-        # Manufacturer level boxes
         Q(content_type=manufacturer_content_type, object_id__in=manufacturer_ids) |
-        # Headstamp level boxes
         Q(content_type=headstamp_content_type, object_id__in=headstamp_ids) |
-        # Load level boxes
         Q(content_type=load_content_type, object_id__in=load_ids) |
-        # Date level boxes
         Q(content_type=date_content_type, object_id__in=date_ids) |
-        # Variation level boxes (both types)
-        Q(content_type=variation_content_type, object_id__in=list(load_var_ids) + list(date_var_ids))
+        Q(content_type=variation_content_type, object_id__in=load_var_ids + date_var_ids)
     ).aggregate(
         count=Count('id'),
         image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
     )
     
-    stats['boxes'] = box_stats['count']
-    stats['box_images'] = box_stats['image_count']
+    # Assign all stats
+    stats['countries'] = basic_counts['countries'] or 0
+    stats['manufacturers'] = basic_counts['manufacturers'] or 0
+    stats['headstamps'] = basic_counts['headstamps'] or 0
+    stats['headstamp_images'] = basic_counts['headstamp_images'] or 0
+    stats['loads'] = load_stats['count'] or 0
+    stats['load_images'] = load_stats['image_count'] or 0
+    stats['dates'] = date_stats['count'] or 0
+    stats['date_images'] = date_stats['image_count'] or 0
+    stats['load_variations'] = variation_stats['load_variations'] or 0
+    stats['load_variation_images'] = variation_stats['load_var_images'] or 0
+    stats['date_variations'] = variation_stats['date_variations'] or 0
+    stats['date_variation_images'] = variation_stats['date_var_images'] or 0
+    stats['boxes'] = box_stats['count'] or 0
+    stats['box_images'] = box_stats['image_count'] or 0
     
-    # Create a combined recent activity timeline
-    # Collect recent activities from different model types,
-    # limiting to 15 recent items to keep performance impact minimal
-    from itertools import islice
-    from django.db.models import F, Value
-    from django.db.models.functions import Concat
-    
+    # Keep your existing recent activities functionality
     # Get recent headstamps with type indicator
     recent_headstamps = Headstamp.objects.filter(
         manufacturer__country__caliber=caliber
@@ -236,36 +221,13 @@ def dashboard(request, caliber_code):
     ).order_by('-updated_at')[:5]
     
     # Get recent boxes
-    from django.contrib.contenttypes.models import ContentType
-    country_content_type = ContentType.objects.get_for_model(Country)
-    manufacturer_content_type = ContentType.objects.get_for_model(Manufacturer)
-    headstamp_content_type = ContentType.objects.get_for_model(Headstamp)
-    load_content_type = ContentType.objects.get_for_model(Load)
-    date_content_type = ContentType.objects.get_for_model(Date)
-    variation_content_type = ContentType.objects.get_for_model(Variation)
-    
-    # Get IDs at each level for filtering boxes
-    country_ids = Country.objects.filter(caliber=caliber).values_list('id', flat=True)
-    manufacturer_ids = Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True)
-    headstamp_ids = Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    load_ids = Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    date_ids = Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
-    load_var_ids = Variation.objects.filter(
-        load__headstamp__manufacturer__country__caliber=caliber, 
-        load__isnull=False
-    ).values_list('id', flat=True)
-    date_var_ids = Variation.objects.filter(
-        date__load__headstamp__manufacturer__country__caliber=caliber, 
-        date__isnull=False
-    ).values_list('id', flat=True)
-    
     recent_boxes = Box.objects.filter(
         Q(content_type=country_content_type, object_id__in=country_ids) |
         Q(content_type=manufacturer_content_type, object_id__in=manufacturer_ids) |
         Q(content_type=headstamp_content_type, object_id__in=headstamp_ids) |
         Q(content_type=load_content_type, object_id__in=load_ids) |
         Q(content_type=date_content_type, object_id__in=date_ids) |
-        Q(content_type=variation_content_type, object_id__in=list(load_var_ids) + list(date_var_ids))
+        Q(content_type=variation_content_type, object_id__in=load_var_ids + date_var_ids)
     ).annotate(
         item_type=Value('box'),
         display_text=F('bid'),
@@ -288,7 +250,6 @@ def dashboard(request, caliber_code):
     }
 
     return render(request, 'collection/dashboard.html', context)
-
 
 
 

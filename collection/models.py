@@ -388,6 +388,10 @@ class Country(BaseEntity):
         verbose_name_plural = "Countries"
         ordering = ['caliber__code', 'name']
         unique_together = [['caliber', 'name']]
+        indexes = [
+            models.Index(fields=['caliber']),  # Critical for caliber filtering
+        ]
+
 
 class Manufacturer(BaseEntity):
     """Manufacturer model - represents cartridge manufacturers"""
@@ -416,6 +420,11 @@ class Manufacturer(BaseEntity):
     class Meta:
         ordering = ['country__caliber__code', 'country__name', 'code']
         unique_together = [['code', 'country']]
+        indexes = [
+            models.Index(fields=['country']),  # Critical for country-based queries
+            models.Index(fields=['country', 'code']),  # Composite for lookups
+        ]
+
 
 class Headstamp(models.Model):
     """Headstamp model - not a physical artifact but needs images and credibility"""
@@ -506,6 +515,11 @@ class Headstamp(models.Model):
     class Meta:
         ordering = ['manufacturer__country__name', 'manufacturer__code', 'code']
         unique_together = [['code', 'manufacturer']]
+        indexes = [
+            models.Index(fields=['manufacturer']),  # Critical for manufacturer-based queries
+            models.Index(fields=['manufacturer', 'code']),  # Composite for lookups
+        ]
+
 
 class HeadstampSource(models.Model):
     """Link between headstamps and sources"""
@@ -635,8 +649,12 @@ class Load(BaseCollectionItem):
 
     class Meta:
         ordering = ['headstamp__manufacturer__country__caliber__code', 'headstamp__manufacturer__country__name', 'headstamp__code', 'cart_id']
-        # We'll use the clean() method for validation instead of a database constraint
-        # This is safer as Django doesn't support deep relationship lookups in constraints
+        indexes = [
+            models.Index(fields=['headstamp']),  # Critical for headstamp-based queries
+            models.Index(fields=['cart_id']),  # For ID searches and auto-generation
+            models.Index(fields=['headstamp', 'cart_id']),  # Composite for common lookups
+            models.Index(fields=['updated_at']),  # For recent activities
+        ]
 
 
 class LoadSource(models.Model):
@@ -755,6 +773,12 @@ class Date(BaseCollectionItem):
     
     class Meta:
         ordering = ['load__headstamp__manufacturer__country__caliber__code', 'load__headstamp__manufacturer__country__name', 'load__cart_id', 'year', 'lot_month']
+        indexes = [
+            models.Index(fields=['load']),  # Critical for load-based queries
+            models.Index(fields=['cart_id']),  # For ID searches and auto-generation
+            models.Index(fields=['load', 'cart_id']),  # Composite for common lookups
+            models.Index(fields=['updated_at']),  # For recent activities
+        ]
 
 
 class DateSource(models.Model):
@@ -882,6 +906,12 @@ class Variation(BaseCollectionItem):
 
     class Meta:
         ordering = ['cart_id']
+        indexes = [
+            models.Index(fields=['load']),  # For load variations
+            models.Index(fields=['date']),  # For date variations
+            models.Index(fields=['cart_id']),  # For ID searches and auto-generation
+            models.Index(fields=['updated_at']),  # For recent activities
+        ]
 
 
 class VariationSource(models.Model):
@@ -1109,6 +1139,11 @@ class Box(BaseCollectionItem):
         
     class Meta:
         ordering = ['bid']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),  # Critical for generic FK
+            models.Index(fields=['bid']),  # For ID searches and auto-generation
+            models.Index(fields=['updated_at']),  # For recent activities
+        ]
 
         
 class BoxSource(models.Model):
