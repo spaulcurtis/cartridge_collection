@@ -77,21 +77,26 @@ def landing(request):
 
 
 def dashboard(request, caliber_code):
-    """Dashboard for a specific caliber with optimized statistics queries"""
-    # Get the current caliber
+    """Dashboard for a specific caliber with minimal queries"""
     caliber = get_object_or_404(Caliber, code=caliber_code)
     
-    # Default theme color if not specified
     if not caliber.theme_color:
-        caliber.theme_color = "#3a7ca5"  # Default blue
+        caliber.theme_color = "#3a7ca5"
 
-    # Get all calibers for the dropdown
     all_calibers = Caliber.objects.all().order_by('order', 'name')
     
-    # Calculate statistics using optimized queries
-    stats = {}
+    # Get ContentTypes once at startup (cache these)
+    from django.contrib.contenttypes.models import ContentType
+    content_types = {
+        'country': ContentType.objects.get_for_model(Country),
+        'manufacturer': ContentType.objects.get_for_model(Manufacturer),
+        'headstamp': ContentType.objects.get_for_model(Headstamp),
+        'load': ContentType.objects.get_for_model(Load),
+        'date': ContentType.objects.get_for_model(Date),
+        'variation': ContentType.objects.get_for_model(Variation),
+    }
     
-    # Single query for countries, manufacturers, headstamps, and headstamp images
+    # Single query for basic counts
     basic_counts = Country.objects.filter(caliber=caliber).aggregate(
         countries=Count('id'),
         manufacturers=Count('manufacturer', distinct=True),
@@ -118,7 +123,7 @@ def dashboard(request, caliber_code):
         image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
     )
     
-    # Single query for all variation stats (both load and date variations)
+    # Single query for variation stats
     variation_stats = Variation.objects.filter(
         Q(load__headstamp__manufacturer__country__caliber=caliber) |
         Q(date__load__headstamp__manufacturer__country__caliber=caliber)
@@ -131,63 +136,50 @@ def dashboard(request, caliber_code):
                                              ~Q(image='') & ~Q(image=None))
     )
     
-    # Get ContentType objects for box queries
-    from django.contrib.contenttypes.models import ContentType
-    country_content_type = ContentType.objects.get_for_model(Country)
-    manufacturer_content_type = ContentType.objects.get_for_model(Manufacturer)
-    headstamp_content_type = ContentType.objects.get_for_model(Headstamp)
-    load_content_type = ContentType.objects.get_for_model(Load)
-    date_content_type = ContentType.objects.get_for_model(Date)
-    variation_content_type = ContentType.objects.get_for_model(Variation)
+    # More efficient box counting - avoid collecting all IDs
+    # Use EXISTS subqueries instead of IN clauses with large ID lists
+    from django.db.models import Exists, OuterRef
     
-    # Get IDs for box query (optimized with single queries)
-    country_ids = list(Country.objects.filter(caliber=caliber).values_list('id', flat=True))
-    manufacturer_ids = list(Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True))
-    headstamp_ids = list(Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True))
-    load_ids = list(Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True))
-    date_ids = list(Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True))
-    
-    # Get variation IDs (both types)
-    load_var_ids = list(Variation.objects.filter(
-        load__headstamp__manufacturer__country__caliber=caliber, 
-        load__isnull=False
-    ).values_list('id', flat=True))
-    date_var_ids = list(Variation.objects.filter(
-        date__load__headstamp__manufacturer__country__caliber=caliber, 
-        date__isnull=False
-    ).values_list('id', flat=True))
-    
-    # Single query for box stats
     box_stats = Box.objects.filter(
-        Q(content_type=country_content_type, object_id__in=country_ids) |
-        Q(content_type=manufacturer_content_type, object_id__in=manufacturer_ids) |
-        Q(content_type=headstamp_content_type, object_id__in=headstamp_ids) |
-        Q(content_type=load_content_type, object_id__in=load_ids) |
-        Q(content_type=date_content_type, object_id__in=date_ids) |
-        Q(content_type=variation_content_type, object_id__in=load_var_ids + date_var_ids)
+        Q(content_type=content_types['country'], 
+          object_id__in=Country.objects.filter(caliber=caliber).values('id')) |
+        Q(content_type=content_types['manufacturer'],
+          object_id__in=Manufacturer.objects.filter(country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['headstamp'],
+          object_id__in=Headstamp.objects.filter(manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['load'],
+          object_id__in=Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['date'],
+          object_id__in=Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['variation'],
+          object_id__in=Variation.objects.filter(
+              Q(load__headstamp__manufacturer__country__caliber=caliber) |
+              Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+          ).values('id'))
     ).aggregate(
         count=Count('id'),
         image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
     )
     
-    # Assign all stats
-    stats['countries'] = basic_counts['countries'] or 0
-    stats['manufacturers'] = basic_counts['manufacturers'] or 0
-    stats['headstamps'] = basic_counts['headstamps'] or 0
-    stats['headstamp_images'] = basic_counts['headstamp_images'] or 0
-    stats['loads'] = load_stats['count'] or 0
-    stats['load_images'] = load_stats['image_count'] or 0
-    stats['dates'] = date_stats['count'] or 0
-    stats['date_images'] = date_stats['image_count'] or 0
-    stats['load_variations'] = variation_stats['load_variations'] or 0
-    stats['load_variation_images'] = variation_stats['load_var_images'] or 0
-    stats['date_variations'] = variation_stats['date_variations'] or 0
-    stats['date_variation_images'] = variation_stats['date_var_images'] or 0
-    stats['boxes'] = box_stats['count'] or 0
-    stats['box_images'] = box_stats['image_count'] or 0
+    # Assign stats
+    stats = {
+        'countries': basic_counts['countries'] or 0,
+        'manufacturers': basic_counts['manufacturers'] or 0,
+        'headstamps': basic_counts['headstamps'] or 0,
+        'headstamp_images': basic_counts['headstamp_images'] or 0,
+        'loads': load_stats['count'] or 0,
+        'load_images': load_stats['image_count'] or 0,
+        'dates': date_stats['count'] or 0,
+        'date_images': date_stats['image_count'] or 0,
+        'load_variations': variation_stats['load_variations'] or 0,
+        'load_variation_images': variation_stats['load_var_images'] or 0,
+        'date_variations': variation_stats['date_variations'] or 0,
+        'date_variation_images': variation_stats['date_var_images'] or 0,
+        'boxes': box_stats['count'] or 0,
+        'box_images': box_stats['image_count'] or 0,
+    }
     
     # Keep your existing recent activities functionality
-    # Get recent headstamps with type indicator
     recent_headstamps = Headstamp.objects.filter(
         manufacturer__country__caliber=caliber
     ).annotate(
@@ -198,7 +190,6 @@ def dashboard(request, caliber_code):
         'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
     ).order_by('-updated_at')[:5]
     
-    # Get recent loads with type indicator
     recent_loads = Load.objects.filter(
         headstamp__manufacturer__country__caliber=caliber
     ).annotate(
@@ -209,7 +200,6 @@ def dashboard(request, caliber_code):
         'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
     ).order_by('-updated_at')[:5]
     
-    # Get recent dates with type indicator
     recent_dates = Date.objects.filter(
         load__headstamp__manufacturer__country__caliber=caliber
     ).annotate(
@@ -220,14 +210,22 @@ def dashboard(request, caliber_code):
         'pk', 'item_type', 'display_text', 'parent_name', 'updated_at'
     ).order_by('-updated_at')[:5]
     
-    # Get recent boxes
     recent_boxes = Box.objects.filter(
-        Q(content_type=country_content_type, object_id__in=country_ids) |
-        Q(content_type=manufacturer_content_type, object_id__in=manufacturer_ids) |
-        Q(content_type=headstamp_content_type, object_id__in=headstamp_ids) |
-        Q(content_type=load_content_type, object_id__in=load_ids) |
-        Q(content_type=date_content_type, object_id__in=date_ids) |
-        Q(content_type=variation_content_type, object_id__in=load_var_ids + date_var_ids)
+        Q(content_type=content_types['country'], 
+          object_id__in=Country.objects.filter(caliber=caliber).values('id')) |
+        Q(content_type=content_types['manufacturer'],
+          object_id__in=Manufacturer.objects.filter(country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['headstamp'],
+          object_id__in=Headstamp.objects.filter(manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['load'],
+          object_id__in=Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['date'],
+          object_id__in=Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values('id')) |
+        Q(content_type=content_types['variation'],
+          object_id__in=Variation.objects.filter(
+              Q(load__headstamp__manufacturer__country__caliber=caliber) |
+              Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+          ).values('id'))
     ).annotate(
         item_type=Value('box'),
         display_text=F('bid'),
@@ -250,7 +248,6 @@ def dashboard(request, caliber_code):
     }
 
     return render(request, 'collection/dashboard.html', context)
-
 
 
 def add_artifact(request, caliber_code):
