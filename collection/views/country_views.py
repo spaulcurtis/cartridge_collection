@@ -319,95 +319,331 @@ def country_detail(request, caliber_code, country_id):
 
 def country_list(request, caliber_code):
     """
-    Optimized view for listing countries with efficient database queries
+    View for listing countries in a caliber with dynamic counts.
+    Uses optimized Django ORM queries for the complex hierarchical counting.
     """
+    # Get the current caliber
     caliber = get_object_or_404(Caliber, code=caliber_code)
+
+    # Get all calibers for the dropdown
     all_calibers = Caliber.objects.all().order_by('order', 'name')
 
-    # Get ContentTypes once
-    from django.contrib.contenttypes.models import ContentType
-    content_types = {
-        'country': ContentType.objects.get_for_model(Country),
-        'manufacturer': ContentType.objects.get_for_model(Manufacturer),
-        'headstamp': ContentType.objects.get_for_model(Headstamp),
-        'load': ContentType.objects.get_for_model(Load),
-        'date': ContentType.objects.get_for_model(Date),
-        'variation': ContentType.objects.get_for_model(Variation),
-    }
+    # Get ContentType IDs for box queries - we'll need these for several operations
+    country_content_type = ContentType.objects.get_for_model(Country)
+    manufacturer_content_type = ContentType.objects.get_for_model(Manufacturer)
+    headstamp_content_type = ContentType.objects.get_for_model(Headstamp)
+    load_content_type = ContentType.objects.get_for_model(Load)
+    date_content_type = ContentType.objects.get_for_model(Date)
+    variation_content_type = ContentType.objects.get_for_model(Variation)
     
-    # Get countries with efficient aggregated counts
-    countries = Country.objects.filter(caliber=caliber).annotate(
-        # Count manufacturers
-        manuf_count=Count('manufacturer', distinct=True),
-        
-        # Count headstamps and headstamp images
-        headstamp_count=Count('manufacturer__headstamps', distinct=True),
-        headstamp_image_count=Count('manufacturer__headstamps__id', 
-                                   filter=~Q(manufacturer__headstamps__image='') & 
-                                          ~Q(manufacturer__headstamps__image=None), 
-                                   distinct=True),
-        
-        # Count loads and load images
-        load_count=Count('manufacturer__headstamps__loads', distinct=True),
-        load_image_count=Count('manufacturer__headstamps__loads__id', 
-                              filter=~Q(manufacturer__headstamps__loads__image='') & 
-                                     ~Q(manufacturer__headstamps__loads__image=None), 
-                              distinct=True),
-        
-        # Count dates and date images
-        date_count=Count('manufacturer__headstamps__loads__dates', distinct=True),
-        date_image_count=Count('manufacturer__headstamps__loads__dates__id', 
-                              filter=~Q(manufacturer__headstamps__loads__dates__image='') & 
-                                     ~Q(manufacturer__headstamps__loads__dates__image=None), 
-                              distinct=True),
-        
-        # Count load variations and images
-        var_count=Count('manufacturer__headstamps__loads__load_variations', 
-                       filter=Q(manufacturer__headstamps__loads__load_variations__load__isnull=False),
-                       distinct=True),
-        var_image_count=Count('manufacturer__headstamps__loads__load_variations__id', 
-                             filter=Q(manufacturer__headstamps__loads__load_variations__load__isnull=False) &
-                                    ~Q(manufacturer__headstamps__loads__load_variations__image='') & 
-                                    ~Q(manufacturer__headstamps__loads__load_variations__image=None), 
-                             distinct=True),
-        
-        # Count date variations and images
-        date_var_count=Count('manufacturer__headstamps__loads__dates__date_variations', 
-                            filter=Q(manufacturer__headstamps__loads__dates__date_variations__date__isnull=False),
-                            distinct=True),
-        date_var_image_count=Count('manufacturer__headstamps__loads__dates__date_variations__id', 
-                                  filter=Q(manufacturer__headstamps__loads__dates__date_variations__date__isnull=False) &
-                                         ~Q(manufacturer__headstamps__loads__dates__date_variations__image='') & 
-                                         ~Q(manufacturer__headstamps__loads__dates__date_variations__image=None), 
-                                  distinct=True)
-    ).order_by('name')
+    # Get all countries for this caliber
+    countries = Country.objects.filter(caliber=caliber).order_by('name')
     
-    # Calculate box counts efficiently with subqueries
-    # This avoids the expensive ID collection and multiple queries
+    # Create a mapping of country_id to country objects for easy reference
+    country_dict = {country.id: country for country in countries}
+    
+    # For each country, gather the related IDs at various levels
+    country_related_ids = {}
+    
+    # Manufacturer IDs per country
+    manufacturer_query = Manufacturer.objects.filter(
+        country__caliber=caliber
+    ).values('country_id', 'id')
+    
+    for item in manufacturer_query:
+        country_id = item['country_id']
+        manufacturer_id = item['id']
+        
+        if country_id not in country_related_ids:
+            country_related_ids[country_id] = {
+                'manufacturer_ids': [],
+                'headstamp_ids': [],
+                'load_ids': [],
+                'date_ids': [],
+                'load_var_ids': [],
+                'date_var_ids': []
+            }
+        
+        country_related_ids[country_id]['manufacturer_ids'].append(manufacturer_id)
+    
+    # Headstamp IDs per country
+    headstamp_query = Headstamp.objects.filter(
+        manufacturer__country__caliber=caliber
+    ).values('manufacturer__country_id', 'id', 'image')
+    
+    for item in headstamp_query:
+        country_id = item['manufacturer__country_id']
+        headstamp_id = item['id']
+        has_image = item['image'] and item['image'] != ''
+        
+        if country_id not in country_related_ids:
+            continue
+            
+        country_related_ids[country_id]['headstamp_ids'].append(headstamp_id)
+        
+        # Count headstamps
+        if not hasattr(country_dict[country_id], 'headstamp_count'):
+            country_dict[country_id].headstamp_count = 0
+            country_dict[country_id].headstamp_image_count = 0
+            
+        country_dict[country_id].headstamp_count += 1
+        if has_image:
+            country_dict[country_id].headstamp_image_count += 1
+    
+    # Load IDs per country
+    load_query = Load.objects.filter(
+        headstamp__manufacturer__country__caliber=caliber
+    ).values('headstamp__manufacturer__country_id', 'id', 'image')
+    
+    for item in load_query:
+        country_id = item['headstamp__manufacturer__country_id']
+        load_id = item['id']
+        has_image = item['image'] and item['image'] != ''
+        
+        if country_id not in country_related_ids:
+            continue
+            
+        country_related_ids[country_id]['load_ids'].append(load_id)
+        
+        # Count loads
+        if not hasattr(country_dict[country_id], 'load_count'):
+            country_dict[country_id].load_count = 0
+            country_dict[country_id].load_image_count = 0
+            
+        country_dict[country_id].load_count += 1
+        if has_image:
+            country_dict[country_id].load_image_count += 1
+    
+    # Date IDs per country
+    date_query = Date.objects.filter(
+        load__headstamp__manufacturer__country__caliber=caliber
+    ).values('load__headstamp__manufacturer__country_id', 'id', 'image')
+    
+    for item in date_query:
+        country_id = item['load__headstamp__manufacturer__country_id']
+        date_id = item['id']
+        has_image = item['image'] and item['image'] != ''
+        
+        if country_id not in country_related_ids:
+            continue
+            
+        country_related_ids[country_id]['date_ids'].append(date_id)
+        
+        # Count dates
+        if not hasattr(country_dict[country_id], 'date_count'):
+            country_dict[country_id].date_count = 0
+            country_dict[country_id].date_image_count = 0
+            
+        country_dict[country_id].date_count += 1
+        if has_image:
+            country_dict[country_id].date_image_count += 1
+    
+    # Load Variation IDs per country
+    load_var_query = Variation.objects.filter(
+        load__headstamp__manufacturer__country__caliber=caliber,
+        load__isnull=False
+    ).values('load__headstamp__manufacturer__country_id', 'id', 'image')
+    
+    for item in load_var_query:
+        country_id = item['load__headstamp__manufacturer__country_id']
+        var_id = item['id']
+        has_image = item['image'] and item['image'] != ''
+        
+        if country_id not in country_related_ids:
+            continue
+            
+        country_related_ids[country_id]['load_var_ids'].append(var_id)
+        
+        # Count load variations
+        if not hasattr(country_dict[country_id], 'var_count'):
+            country_dict[country_id].var_count = 0
+            country_dict[country_id].var_image_count = 0
+            
+        country_dict[country_id].var_count += 1
+        if has_image:
+            country_dict[country_id].var_image_count += 1
+    
+    # Date Variation IDs per country
+    date_var_query = Variation.objects.filter(
+        date__load__headstamp__manufacturer__country__caliber=caliber,
+        date__isnull=False
+    ).values('date__load__headstamp__manufacturer__country_id', 'id', 'image')
+    
+    for item in date_var_query:
+        country_id = item['date__load__headstamp__manufacturer__country_id']
+        var_id = item['id']
+        has_image = item['image'] and item['image'] != ''
+        
+        if country_id not in country_related_ids:
+            continue
+            
+        country_related_ids[country_id]['date_var_ids'].append(var_id)
+        
+        # Count date variations
+        if not hasattr(country_dict[country_id], 'date_var_count'):
+            country_dict[country_id].date_var_count = 0
+            country_dict[country_id].date_var_image_count = 0
+            
+        country_dict[country_id].date_var_count += 1
+        if has_image:
+            country_dict[country_id].date_var_image_count += 1
+    
+    # Count manufacturers
+    manufacturer_counts = Manufacturer.objects.filter(
+        country__caliber=caliber
+    ).values('country_id').annotate(count=Count('id'))
+    
+    for item in manufacturer_counts:
+        country_id = item['country_id']
+        count = item['count']
+        
+        if country_id in country_dict:
+            country_dict[country_id].manuf_count = count
+    
+    # Initialize counts for countries without data
     for country in countries:
-        # Use a single aggregated query for each country's boxes across all levels
-        box_stats = Box.objects.filter(
-            Q(content_type=content_types['country'], object_id=country.id) |
-            Q(content_type=content_types['manufacturer'],
-              object_id__in=Manufacturer.objects.filter(country=country).values('id')) |
-            Q(content_type=content_types['headstamp'],
-              object_id__in=Headstamp.objects.filter(manufacturer__country=country).values('id')) |
-            Q(content_type=content_types['load'],
-              object_id__in=Load.objects.filter(headstamp__manufacturer__country=country).values('id')) |
-            Q(content_type=content_types['date'],
-              object_id__in=Date.objects.filter(load__headstamp__manufacturer__country=country).values('id')) |
-            Q(content_type=content_types['variation'],
-              object_id__in=Variation.objects.filter(
-                  Q(load__headstamp__manufacturer__country=country) |
-                  Q(date__load__headstamp__manufacturer__country=country)
-              ).values('id'))
+        if not hasattr(country, 'manuf_count'):
+            country.manuf_count = 0
+        if not hasattr(country, 'headstamp_count'):
+            country.headstamp_count = 0
+            country.headstamp_image_count = 0
+        if not hasattr(country, 'load_count'):
+            country.load_count = 0
+            country.load_image_count = 0
+        if not hasattr(country, 'date_count'):
+            country.date_count = 0
+            country.date_image_count = 0
+        if not hasattr(country, 'var_count'):
+            country.var_count = 0
+            country.var_image_count = 0
+        if not hasattr(country, 'date_var_count'):
+            country.date_var_count = 0
+            country.date_var_image_count = 0
+        
+        # Initialize box counts
+        country.box_count = 0
+        country.box_image_count = 0
+    
+    # Count boxes at each level and add to appropriate country
+    # Country-level boxes
+    country_box_counts = Box.objects.filter(
+        content_type=country_content_type,
+        object_id__in=[c.id for c in countries]
+    ).values('object_id').annotate(
+        box_count=Count('id'),
+        image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+    )
+    
+    for item in country_box_counts:
+        country_id = item['object_id']
+        box_count = item['box_count']
+        image_count = item['image_count']
+        
+        if country_id in country_dict:
+            country_dict[country_id].box_count += box_count
+            country_dict[country_id].box_image_count += image_count
+    
+    # Manufacturer-level boxes
+    for country_id, ids in country_related_ids.items():
+        manufacturer_ids = ids.get('manufacturer_ids', [])
+        if not manufacturer_ids:
+            continue
+            
+        manufacturer_box_counts = Box.objects.filter(
+            content_type=manufacturer_content_type,
+            object_id__in=manufacturer_ids
         ).aggregate(
-            count=Count('id'),
-            image_count=Count('id', filter=~Q(image='') & ~Q(image=None))
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
         )
         
-        country.box_count = box_stats['count'] or 0
-        country.box_image_count = box_stats['image_count'] or 0
+        country_dict[country_id].box_count += manufacturer_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += manufacturer_box_counts['image_count'] or 0
+    
+    # Headstamp-level boxes
+    for country_id, ids in country_related_ids.items():
+        headstamp_ids = ids.get('headstamp_ids', [])
+        if not headstamp_ids:
+            continue
+            
+        headstamp_box_counts = Box.objects.filter(
+            content_type=headstamp_content_type,
+            object_id__in=headstamp_ids
+        ).aggregate(
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+        )
+        
+        country_dict[country_id].box_count += headstamp_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += headstamp_box_counts['image_count'] or 0
+    
+    # Load-level boxes
+    for country_id, ids in country_related_ids.items():
+        load_ids = ids.get('load_ids', [])
+        if not load_ids:
+            continue
+            
+        load_box_counts = Box.objects.filter(
+            content_type=load_content_type,
+            object_id__in=load_ids
+        ).aggregate(
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+        )
+        
+        country_dict[country_id].box_count += load_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += load_box_counts['image_count'] or 0
+    
+    # Date-level boxes
+    for country_id, ids in country_related_ids.items():
+        date_ids = ids.get('date_ids', [])
+        if not date_ids:
+            continue
+            
+        date_box_counts = Box.objects.filter(
+            content_type=date_content_type,
+            object_id__in=date_ids
+        ).aggregate(
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+        )
+        
+        country_dict[country_id].box_count += date_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += date_box_counts['image_count'] or 0
+    
+    # Load Variation-level boxes
+    for country_id, ids in country_related_ids.items():
+        load_var_ids = ids.get('load_var_ids', [])
+        if not load_var_ids:
+            continue
+            
+        load_var_box_counts = Box.objects.filter(
+            content_type=variation_content_type,
+            object_id__in=load_var_ids
+        ).aggregate(
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+        )
+        
+        country_dict[country_id].box_count += load_var_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += load_var_box_counts['image_count'] or 0
+    
+    # Date Variation-level boxes
+    for country_id, ids in country_related_ids.items():
+        date_var_ids = ids.get('date_var_ids', [])
+        if not date_var_ids:
+            continue
+            
+        date_var_box_counts = Box.objects.filter(
+            content_type=variation_content_type,
+            object_id__in=date_var_ids
+        ).aggregate(
+            box_count=Count('id'),
+            image_count=Count('id', filter=Q(image__isnull=False) & ~Q(image=''))
+        )
+        
+        country_dict[country_id].box_count += date_var_box_counts['box_count'] or 0
+        country_dict[country_id].box_image_count += date_var_box_counts['image_count'] or 0
 
     context = {
         'caliber': caliber,
@@ -416,7 +652,6 @@ def country_list(request, caliber_code):
     }
 
     return render(request, 'collection/country_list.html', context)
-
 
 @login_required
 @permission_required('collection.add_country', raise_exception=True)
