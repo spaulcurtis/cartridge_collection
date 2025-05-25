@@ -943,45 +943,99 @@ class Box(BaseCollectionItem):
                             'bid': f"Box with bid '{self.bid}' already exists in caliber {caliber.code}"
                         })
     
-    def save(self, *args, **kwargs):
-        # Run validation
-        self.clean()
+def save(self, *args, **kwargs):
+    # Run validation
+    self.clean()
+    
+    # Automatically generate bid if not provided
+    if not self.bid and not self.pk:
+        # Get the caliber efficiently
+        caliber = self.parent_caliber()
         
-        # Automatically generate bid if not provided
-        if not self.bid and not self.pk:
-            # Get the caliber
-            caliber = self.parent_caliber()
-            
-            # Find the highest bid for this caliber
+        if caliber:
+            # Find the highest bid for this caliber using an efficient query
             prefix = "B"
-            max_id = 0
             
-            if caliber:
-                # Find all boxes in this caliber
-                all_boxes = Box.objects.all()
-                for box in all_boxes:
-                    if box.parent_caliber() == caliber and box.bid.startswith(prefix):
-                        try:
-                            numeric_part = int(box.bid[len(prefix):])
-                            max_id = max(max_id, numeric_part)
-                        except (ValueError, IndexError):
-                            pass
-            else:
-                # Fallback if caliber can't be determined
-                existing_ids = Box.objects.filter(bid__startswith=prefix).values_list('bid', flat=True)
-                for existing_id in existing_ids:
-                    try:
-                        numeric_part = int(existing_id[len(prefix):])
-                        max_id = max(max_id, numeric_part)
-                    except (ValueError, IndexError):
-                        pass
+            # Get all entity IDs that belong to this caliber
+            from django.contrib.contenttypes.models import ContentType
+            
+            # Get ContentTypes
+            country_ct = ContentType.objects.get_for_model(Country)
+            manufacturer_ct = ContentType.objects.get_for_model(Manufacturer) 
+            headstamp_ct = ContentType.objects.get_for_model(Headstamp)
+            load_ct = ContentType.objects.get_for_model(Load)
+            date_ct = ContentType.objects.get_for_model(Date)
+            variation_ct = ContentType.objects.get_for_model(Variation)
+            
+            # Get all relevant IDs for this caliber
+            country_ids = Country.objects.filter(caliber=caliber).values_list('id', flat=True)
+            manufacturer_ids = Manufacturer.objects.filter(country__caliber=caliber).values_list('id', flat=True)
+            headstamp_ids = Headstamp.objects.filter(manufacturer__country__caliber=caliber).values_list('id', flat=True)
+            load_ids = Load.objects.filter(headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
+            date_ids = Date.objects.filter(load__headstamp__manufacturer__country__caliber=caliber).values_list('id', flat=True)
+            
+            # Get variation IDs (both load and date variations)
+            load_variation_ids = Variation.objects.filter(
+                load__headstamp__manufacturer__country__caliber=caliber,
+                load__isnull=False
+            ).values_list('id', flat=True)
+            
+            date_variation_ids = Variation.objects.filter(
+                date__load__headstamp__manufacturer__country__caliber=caliber,
+                date__isnull=False
+            ).values_list('id', flat=True)
+            
+            # Combine variation IDs
+            variation_ids = list(load_variation_ids) + list(date_variation_ids)
+            
+            # Build query to find boxes in this caliber with the prefix
+            from django.db.models import Q, Max
+            from django.db.models.functions import Cast, Substr
+            from django.db.models import IntegerField
+            
+            caliber_boxes_query = Box.objects.filter(
+                Q(content_type=country_ct, object_id__in=country_ids) |
+                Q(content_type=manufacturer_ct, object_id__in=manufacturer_ids) |
+                Q(content_type=headstamp_ct, object_id__in=headstamp_ids) |
+                Q(content_type=load_ct, object_id__in=load_ids) |
+                Q(content_type=date_ct, object_id__in=date_ids) |
+                Q(content_type=variation_ct, object_id__in=variation_ids)
+            ).filter(
+                bid__startswith=prefix,
+                bid__regex=r'^B[0-9]+$'  # Ensure it's B followed by numbers only
+            )
+            
+            # Extract numeric part and find max using database aggregation
+            max_result = caliber_boxes_query.annotate(
+                numeric_part=Cast(Substr('bid', len(prefix) + 1), IntegerField())
+            ).aggregate(Max('numeric_part'))
+            
+            max_id = max_result['numeric_part__max'] or 0
             
             # Increment and create new ID
             next_id = max_id + 1
             self.bid = f"{prefix}{next_id}"
+        else:
+            # Fallback if caliber can't be determined - use simple approach
+            from django.db.models import Max
+            from django.db.models.functions import Cast, Substr
+            from django.db.models import IntegerField
             
-        super().save(*args, **kwargs)
+            prefix = "B"
+            max_result = Box.objects.filter(
+                bid__startswith=prefix,
+                bid__regex=r'^B[0-9]+$'
+            ).annotate(
+                numeric_part=Cast(Substr('bid', len(prefix) + 1), IntegerField())
+            ).aggregate(Max('numeric_part'))
+            
+            max_id = max_result['numeric_part__max'] or 0
+            next_id = max_id + 1
+            self.bid = f"{prefix}{next_id}"
+        
+    super().save(*args, **kwargs)
     
+        
     def parent_caliber(self):
         """
         Determines which caliber this box belongs to by traversing the parent relationship.
