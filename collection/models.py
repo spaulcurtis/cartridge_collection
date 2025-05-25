@@ -608,30 +608,31 @@ class Load(BaseCollectionItem):
             # Get the caliber
             caliber = self.get_caliber()
             
-            # Find the highest cart_id for this caliber
+            # Find the highest cart_id for this caliber using efficient database query
             prefix = "L"
-            max_id = 0
             
-            # Look for existing cart_ids with the same prefix in this caliber
-            existing_ids = Load.objects.filter(
+            # Use database aggregation to find max ID efficiently
+            from django.db.models import Max
+            from django.db.models.functions import Cast, Substr
+            from django.db.models import IntegerField
+            
+            max_result = Load.objects.filter(
                 cart_id__startswith=prefix,
+                cart_id__regex=r'^L[0-9]+$',  # Ensure it's L followed by numbers only
                 headstamp__manufacturer__country__caliber=caliber
-            ).values_list('cart_id', flat=True)
+            ).annotate(
+                numeric_part=Cast(Substr('cart_id', len(prefix) + 1), IntegerField())
+            ).aggregate(Max('numeric_part'))
             
-            # Extract numeric parts and find max
-            for existing_id in existing_ids:
-                try:
-                    numeric_part = int(existing_id[len(prefix):])
-                    max_id = max(max_id, numeric_part)
-                except (ValueError, IndexError):
-                    pass
+            max_id = max_result['numeric_part__max'] or 0
             
             # Increment and create new ID
             next_id = max_id + 1
             self.cart_id = f"{prefix}{next_id}"
             
         super().save(*args, **kwargs)
-    
+
+
     class Meta:
         ordering = ['headstamp__manufacturer__country__caliber__code', 'headstamp__manufacturer__country__name', 'headstamp__code', 'cart_id']
         # We'll use the clean() method for validation instead of a database constraint
@@ -727,23 +728,23 @@ class Date(BaseCollectionItem):
             # Get the caliber
             caliber = self.get_caliber()
             
-            # Find the highest cart_id for this caliber
+            # Find the highest cart_id for this caliber using efficient database query
             prefix = "D"
-            max_id = 0
             
-            # Look for existing cart_ids with the same prefix in this caliber
-            existing_ids = Date.objects.filter(
+            # Use database aggregation to find max ID efficiently
+            from django.db.models import Max
+            from django.db.models.functions import Cast, Substr
+            from django.db.models import IntegerField
+            
+            max_result = Date.objects.filter(
                 cart_id__startswith=prefix,
+                cart_id__regex=r'^D[0-9]+$',  # Ensure it's D followed by numbers only
                 load__headstamp__manufacturer__country__caliber=caliber
-            ).values_list('cart_id', flat=True)
+            ).annotate(
+                numeric_part=Cast(Substr('cart_id', len(prefix) + 1), IntegerField())
+            ).aggregate(Max('numeric_part'))
             
-            # Extract numeric parts and find max
-            for existing_id in existing_ids:
-                try:
-                    numeric_part = int(existing_id[len(prefix):])
-                    max_id = max(max_id, numeric_part)
-                except (ValueError, IndexError):
-                    pass
+            max_id = max_result['numeric_part__max'] or 0
             
             # Increment and create new ID
             next_id = max_id + 1
@@ -837,40 +838,48 @@ class Variation(BaseCollectionItem):
             # Get the caliber
             caliber = self.get_caliber()
             
-            # Find the highest cart_id for this caliber
+            # Find the highest cart_id for this caliber using efficient database query
             prefix = "V"
-            max_id = 0
             
             if caliber:
-                # Look for existing cart_ids with the same prefix in this caliber
-                existing_variations = Variation.objects.filter(
-                    models.Q(load__headstamp__manufacturer__country__caliber=caliber) | 
-                    models.Q(date__load__headstamp__manufacturer__country__caliber=caliber)
-                )
+                # Use database aggregation to find max ID efficiently
+                from django.db.models import Q, Max
+                from django.db.models.functions import Cast, Substr
+                from django.db.models import IntegerField
                 
-                for variation in existing_variations:
-                    if variation.cart_id.startswith(prefix):
-                        try:
-                            numeric_part = int(variation.cart_id[len(prefix):])
-                            max_id = max(max_id, numeric_part)
-                        except (ValueError, IndexError):
-                            pass
+                # Query variations in this caliber (both load and date variations)
+                max_result = Variation.objects.filter(
+                    Q(load__headstamp__manufacturer__country__caliber=caliber) | 
+                    Q(date__load__headstamp__manufacturer__country__caliber=caliber)
+                ).filter(
+                    cart_id__startswith=prefix,
+                    cart_id__regex=r'^V[0-9]+$'  # Ensure it's V followed by numbers only
+                ).annotate(
+                    numeric_part=Cast(Substr('cart_id', len(prefix) + 1), IntegerField())
+                ).aggregate(Max('numeric_part'))
+                
+                max_id = max_result['numeric_part__max'] or 0
             else:
                 # Fallback if caliber can't be determined
-                existing_ids = Variation.objects.filter(cart_id__startswith=prefix).values_list('cart_id', flat=True)
-                for existing_id in existing_ids:
-                    try:
-                        numeric_part = int(existing_id[len(prefix):])
-                        max_id = max(max_id, numeric_part)
-                    except (ValueError, IndexError):
-                        pass
+                from django.db.models import Max
+                from django.db.models.functions import Cast, Substr
+                from django.db.models import IntegerField
+                
+                max_result = Variation.objects.filter(
+                    cart_id__startswith=prefix,
+                    cart_id__regex=r'^V[0-9]+$'
+                ).annotate(
+                    numeric_part=Cast(Substr('cart_id', len(prefix) + 1), IntegerField())
+                ).aggregate(Max('numeric_part'))
+                
+                max_id = max_result['numeric_part__max'] or 0
             
             # Increment and create new ID
             next_id = max_id + 1
             self.cart_id = f"{prefix}{next_id}"
                 
         super().save(*args, **kwargs)
-    
+
     class Meta:
         ordering = ['cart_id']
 
