@@ -3,9 +3,100 @@ from django.db.models import Count, Q, Prefetch, Sum, F, Value, IntegerField, Ca
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
+import re
 from ..models import Caliber, Country, Manufacturer, Headstamp, Load, Date, Variation, Box, LoadSource, Source
 from ..forms.load_forms import LoadForm, LoadSourceForm, LoadMoveForm
 from ..utils.note_utils import process_notes
+
+def smart_sort_key(date_obj):
+    """
+    Generate a sort key for dates that handles numeric lot values intelligently.
+    Returns a tuple (year_key, lot_key) for sorting.
+    """
+    year = date_obj.year or ''
+    lot = date_obj.lot_month or ''
+    
+    def parse_sort_value(value):
+        if not value:
+            return (0, '')
+        
+        # Try to extract leading number for numeric sorting
+        numeric_match = re.match(r'^(\d+)', str(value))
+        if numeric_match:
+            # If it starts with a number, sort by that number first, then by the rest
+            num = int(numeric_match.group(1))
+            remainder = str(value)[len(numeric_match.group(1)):]
+            return (1, num, remainder)
+        else:
+            # Non-numeric, sort alphabetically but after numeric values
+            return (2, 0, str(value))
+    
+    year_key = parse_sort_value(year)
+    lot_key = parse_sort_value(lot)
+    
+    return (year_key, lot_key)
+
+def prepare_grid_data(dates):
+    """
+    Prepare data for grid view: organize dates by year and lot.
+    Returns dict with years as keys and lots as nested dict.
+    """
+    grid_data = {}
+    all_lots = set()
+    
+    for date in dates:
+        year = date.year or 'Unknown'
+        lot = date.lot_month or 'Unknown'
+        
+        if year not in grid_data:
+            grid_data[year] = {}
+        
+        # Handle potential duplicates by storing in a list
+        if lot not in grid_data[year]:
+            grid_data[year][lot] = []
+        
+        grid_data[year][lot].append(date)
+        all_lots.add(lot)
+    
+    # Sort years and lots intelligently
+    def sort_grid_value(value):
+        if value == 'Unknown':
+            return (999, '')  # Put Unknown at the end
+        return parse_sort_value(value)
+    
+    def parse_sort_value(value):
+        if not value:
+            return (0, '')
+        
+        numeric_match = re.match(r'^(\d+)', str(value))
+        if numeric_match:
+            num = int(numeric_match.group(1))
+            remainder = str(value)[len(numeric_match.group(1)):]
+            return (1, num, remainder)
+        else:
+            return (2, 0, str(value))
+    
+    # Sort all_lots for column headers
+    sorted_lots = sorted(all_lots, key=sort_grid_value)
+    
+    # Sort years
+    sorted_years = sorted(grid_data.keys(), key=sort_grid_value)
+    
+    # Create ordered grid data
+    ordered_grid = {}
+    for year in sorted_years:
+        ordered_grid[year] = {}
+        for lot in sorted_lots:
+            if lot in grid_data[year]:
+                ordered_grid[year][lot] = grid_data[year][lot]
+            else:
+                ordered_grid[year][lot] = None  # Empty cell
+    
+    return {
+        'grid_data': ordered_grid,
+        'sorted_years': sorted_years,
+        'sorted_lots': sorted_lots
+    }
 
 def load_detail(request, caliber_code, load_id):
     """View for showing details of a specific load"""
@@ -38,8 +129,10 @@ def load_detail(request, caliber_code, load_id):
     date_content_type = ContentType.objects.get_for_model(Date)
     variation_content_type = ContentType.objects.get_for_model(Variation)
     
-    # Get dates for this load
-    dates = Date.objects.filter(load=load).order_by('year', 'lot_month', 'cart_id')
+    # Get dates for this load - use smart sorting
+    dates_queryset = Date.objects.filter(load=load)
+    dates = list(dates_queryset)  # Convert to list for custom sorting
+    dates.sort(key=smart_sort_key)  # Apply smart sorting
     
     # Get load variations for this load
     load_variations = Variation.objects.filter(load=load, date__isnull=True).order_by('cart_id')
@@ -154,6 +247,13 @@ def load_detail(request, caliber_code, load_id):
         object_id=load.pk
     ).order_by('bid')
     
+    # Prepare grid data for dates
+    grid_info = prepare_grid_data(dates) if dates else {
+        'grid_data': {},
+        'sorted_years': [],
+        'sorted_lots': []
+    }
+    
     context = {
         'caliber': caliber,
         'all_calibers': all_calibers,
@@ -166,6 +266,9 @@ def load_detail(request, caliber_code, load_id):
         'direct_boxes': direct_boxes,
         'load_content_type': load_content_type,
         'load_sources': load_sources,
+        'dates_grid_data': grid_info['grid_data'],
+        'dates_sorted_years': grid_info['sorted_years'],
+        'dates_sorted_lots': grid_info['sorted_lots'],
     }
     
     return render(request, 'collection/load_detail.html', context)
