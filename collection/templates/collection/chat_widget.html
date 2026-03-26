@@ -125,6 +125,13 @@
     .chat-msg.assistant li {
         margin-bottom: 0.2em;
     }
+    .chat-msg.assistant a {
+        color: var(--theme-color, #3a7ca5);
+        text-decoration: underline;
+    }
+    .chat-msg.assistant a:hover {
+        opacity: 0.8;
+    }
     .chat-msg.assistant code {
         background-color: rgba(0, 0, 0, 0.08);
         padding: 1px 4px;
@@ -244,6 +251,8 @@
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
+            // Markdown links: [text](url)
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
             // Bold: **text**
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             // Inline code: `text`
