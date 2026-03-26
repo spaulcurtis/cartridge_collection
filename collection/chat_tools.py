@@ -18,18 +18,17 @@ TOOL_DEFINITIONS = [
         "name": "search_headstamps",
         "description": (
             "Search for headstamps by text. Matches against headstamp code and name. "
-            "Returns matching headstamps with their manufacturer, country, load count, "
-            "and a link to the detail page. Use this when the user asks about a specific "
-            "headstamp marking, wants to find headstamps, or asks what headstamps exist "
-            "for a manufacturer or country. If there are many results, also returns a "
-            "link to the full search results page."
+            "Use this when the user asks about a specific headstamp marking, wants to "
+            "find headstamps, or asks what headstamps exist for a manufacturer or country. "
+            "Returns for each match: code, name, manufacturer (code and name), country, "
+            "load_count, has_image, and url (link to detail page)."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "caliber_code": {
                     "type": "string",
-                    "description": "The caliber code, e.g. '9mm' or '765'. If unknown, use '9mm'.",
+                    "description": "The caliber code. Infer from the current page URL path. Valid codes: '9mmP' (9mm Parabellum), '765mmP' (7.65mm), '9mmM' (9mm Mauser). Do NOT guess — use the URL.",
                 },
                 "search_text": {
                     "type": "string",
@@ -50,18 +49,21 @@ TOOL_DEFINITIONS = [
     {
         "name": "get_record_details",
         "description": (
-            "Get full details of a specific record by its Cart ID (e.g., L123, D45, V12, B7) "
-            "or by its type and database ID. Returns all fields for the record, its position "
-            "in the hierarchy, and a link to its detail page. Use this when the user asks "
-            "about a specific item, references a Cart ID, or wants details about a particular "
-            "load, date, variation, box, or headstamp."
+            "Get full details of a single record by its Cart ID (e.g., L123, D45, V12, B7) "
+            "or headstamp code. Use this when the user references a specific Cart ID or "
+            "wants all details about one item. Only use this for individual lookups — for "
+            "questions about multiple records, use search_loads or browse_children instead. "
+            "Returns all fields including: for loads — load_type, bullet_type, case_type, "
+            "primer, pa_color, is_magnetic, credibility, description, acquisition_note, "
+            "price, notes, date_count, variation_count, url; for headstamps — code, name, "
+            "manufacturer, country, credibility, load_count, case_manufacturer, url."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "caliber_code": {
                     "type": "string",
-                    "description": "The caliber code, e.g. '9mm' or '765'. If unknown, use '9mm'.",
+                    "description": "The caliber code. Infer from the current page URL path. Valid codes: '9mmP' (9mm Parabellum), '765mmP' (7.65mm), '9mmM' (9mm Mauser). Do NOT guess — use the URL.",
                 },
                 "cart_id": {
                     "type": "string",
@@ -87,18 +89,21 @@ TOOL_DEFINITIONS = [
     {
         "name": "search_loads",
         "description": (
-            "Search for loads (cartridges) by various criteria. Returns matching loads "
-            "with key properties and links to detail pages. Use this when the user asks "
-            "about cartridges with specific characteristics like case type, bullet type, "
-            "country of origin, or manufacturer. Also useful for questions like 'what "
-            "steel case loads do I have' or 'show me magnetic rounds from Finland'."
+            "Search for loads (cartridges) by various criteria. Use this when the user "
+            "asks about cartridges with specific characteristics like case type, bullet "
+            "type, primer, country, or manufacturer. Also useful for questions like 'what "
+            "steel case loads do I have' or 'show me magnetic rounds from Finland'. "
+            "Returns for each match: cart_id, headstamp, manufacturer, country, load_type, "
+            "bullet_type, case_type, primer, pa_color, is_magnetic, description, has_image, "
+            "and url. This includes enough detail to answer most questions without needing "
+            "follow-up get_record_details calls."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "caliber_code": {
                     "type": "string",
-                    "description": "The caliber code, e.g. '9mm' or '765'. If unknown, use '9mm'.",
+                    "description": "The caliber code. Infer from the current page URL path. Valid codes: '9mmP' (9mm Parabellum), '765mmP' (7.65mm), '9mmM' (9mm Mauser). Do NOT guess — use the URL.",
                 },
                 "country": {
                     "type": "string",
@@ -139,18 +144,21 @@ TOOL_DEFINITIONS = [
     {
         "name": "browse_children",
         "description": (
-            "Browse the collection hierarchy. Lists children of a given level with links. "
-            "Use this when the user asks 'what countries are in the collection', 'what "
-            "manufacturers are in Germany', 'what headstamps does DAG have', or 'what "
-            "loads are under this headstamp'. Specify the parent level and optionally a "
-            "parent name/code to filter."
+            "Browse the collection hierarchy. Lists children of a given level with counts "
+            "and links. Use this when the user asks 'what countries are in the collection', "
+            "'what manufacturers are in Germany', 'what headstamps does DAG have', or "
+            "'what loads are under this headstamp'. Returns vary by level: countries include "
+            "name, full_name, manufacturer_count; manufacturers include code, name, country, "
+            "headstamp_count; headstamps include code, name, manufacturer, country, "
+            "load_count; loads include cart_id, headstamp, load_type, bullet_type, "
+            "case_type, primer, pa_color, description. All include url."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "caliber_code": {
                     "type": "string",
-                    "description": "The caliber code, e.g. '9mm' or '765'. If unknown, use '9mm'.",
+                    "description": "The caliber code. Infer from the current page URL path. Valid codes: '9mmP' (9mm Parabellum), '765mmP' (7.65mm), '9mmM' (9mm Mauser). Do NOT guess — use the URL.",
                 },
                 "child_type": {
                     "type": "string",
@@ -251,16 +259,12 @@ def search_headstamps(caliber_code, search_text, country=None, manufacturer=None
         "results": results,
     }
 
-    # If too many results, include a link to the search page
     if total_count > MAX_RESULTS:
-        search_url = reverse('headstamp_search', args=[caliber_code])
-        params = [f"code={search_text}", "code_match_type=contains"]
-        if country:
-            params.append(f"country_id={_find_country_id(caliber, country)}")
-        response["search_page_url"] = f"{search_url}?{'&'.join(params)}"
         response["note"] = (
             f"Showing first {MAX_RESULTS} of {total_count} results. "
-            f"Use the search page link for the full list."
+            f"The user can see all results by using Advanced Search from the Dashboard: "
+            f"click Advanced Search, then Headstamp, and enter \"{search_text}\" in the "
+            f"headstamp code field."
         )
 
     return response
@@ -532,6 +536,8 @@ def search_loads(caliber_code, country=None, manufacturer=None, headstamp=None,
             "load_type": str(load.load_type) if load.load_type else "",
             "bullet_type": str(load.bullet) if load.bullet else "",
             "case_type": str(load.case_type) if load.case_type else "",
+            "primer": str(load.primer) if load.primer else "",
+            "pa_color": str(load.pa_color) if load.pa_color else "",
             "is_magnetic": load.is_magnetic,
             "description": load.description or "",
             "has_image": bool(load.image),
@@ -543,27 +549,28 @@ def search_loads(caliber_code, country=None, manufacturer=None, headstamp=None,
     }
 
     if total_count > MAX_RESULTS:
-        search_url = reverse('load_search', args=[caliber_code])
-        params = []
+        # Build a human-readable description of the search filters
+        filter_parts = []
         if country:
-            cid = _find_country_id(caliber, country)
-            if cid:
-                params.append(f"country_id={cid}")
+            filter_parts.append(f"country \"{country}\"")
         if manufacturer:
-            mid = _find_manufacturer_id(caliber, manufacturer)
-            if mid:
-                params.append(f"manufacturer_id={mid}")
+            filter_parts.append(f"manufacturer \"{manufacturer}\"")
         if case_type:
-            params.append(f"case_type_id=_text:{case_type}")
-        if description:
-            params.append(f"description={description}&description_match_type=contains")
+            filter_parts.append(f"case type \"{case_type}\"")
+        if bullet_type:
+            filter_parts.append(f"bullet type \"{bullet_type}\"")
+        if load_type:
+            filter_parts.append(f"load type \"{load_type}\"")
         if is_magnetic is not None:
-            params.append(f"is_magnetic={'true' if is_magnetic else 'false'}")
-        query_string = f"?{'&'.join(params)}" if params else ""
-        response["search_page_url"] = f"{search_url}{query_string}"
+            filter_parts.append("magnetic" if is_magnetic else "non-magnetic")
+        if description:
+            filter_parts.append(f"description containing \"{description}\"")
+        filter_desc = ", ".join(filter_parts) if filter_parts else "these criteria"
+
         response["note"] = (
             f"Showing first {MAX_RESULTS} of {total_count} results. "
-            f"Use the search page link for the full list."
+            f"To see all results, use Advanced Search from the Dashboard: "
+            f"click Advanced Search, then Load, and filter by {filter_desc}."
         )
 
     return response
@@ -679,7 +686,7 @@ def browse_children(caliber_code, child_type, parent_name=None):
             headstamp__manufacturer__country__caliber=caliber,
         ).select_related(
             'headstamp', 'headstamp__manufacturer',
-            'load_type', 'bullet', 'case_type',
+            'load_type', 'bullet', 'case_type', 'primer', 'pa_color',
         ).order_by('cart_id')
 
         if parent_name:
@@ -695,6 +702,8 @@ def browse_children(caliber_code, child_type, parent_name=None):
                 "load_type": str(load.load_type) if load.load_type else "",
                 "bullet_type": str(load.bullet) if load.bullet else "",
                 "case_type": str(load.case_type) if load.case_type else "",
+                "primer": str(load.primer) if load.primer else "",
+                "pa_color": str(load.pa_color) if load.pa_color else "",
                 "description": load.description or "",
                 "url": url,
             })
@@ -713,26 +722,3 @@ def browse_children(caliber_code, child_type, parent_name=None):
     else:
         return {"error": f"Unknown child type: {child_type}"}
 
-
-# --- Helpers ---
-
-def _find_country_id(caliber, name):
-    """Find a country ID by partial name match. Returns ID or empty string."""
-    from django.db.models import Q
-    c = Country.objects.filter(
-        caliber=caliber,
-    ).filter(
-        Q(name__icontains=name) | Q(full_name__icontains=name)
-    ).first()
-    return str(c.id) if c else ""
-
-
-def _find_manufacturer_id(caliber, name):
-    """Find a manufacturer ID by partial code/name match. Returns ID or empty string."""
-    from django.db.models import Q
-    m = Manufacturer.objects.filter(
-        country__caliber=caliber,
-    ).filter(
-        Q(code__icontains=name) | Q(name__icontains=name)
-    ).first()
-    return str(m.id) if m else ""

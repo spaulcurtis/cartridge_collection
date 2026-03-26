@@ -182,7 +182,9 @@ ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default=None)
 LOGIN_REDIRECT_URL = '/'  # Default redirect if no 'next' parameter
 LOGOUT_REDIRECT_URL = '/'  # Redirect to home page after logout
 
-# Add this to your settings.py
+# Chat log directory — on Render use the persistent media disk, locally use logs/
+CHAT_LOG_DIR = os.path.join(MEDIA_ROOT, 'chat_logs') if not DEBUG else os.path.join(BASE_DIR, 'logs')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -209,7 +211,7 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        'collection': {  # Your app name
+        'collection': {
             'handlers': ['console'],
             'level': 'ERROR',
             'propagate': False,
