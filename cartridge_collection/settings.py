@@ -176,6 +176,9 @@ if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
 # Authentication settings
+# Anthropic API
+ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default=None)
+
 LOGIN_REDIRECT_URL = '/'  # Default redirect if no 'next' parameter
 LOGOUT_REDIRECT_URL = '/'  # Redirect to home page after logout
 

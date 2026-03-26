@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-from collection.views import serve_media_file  # Import the view
+from collection.views import serve_media_file, chat_message, chat_clear, chat_history
 
 
 
@@ -32,8 +32,11 @@ from collection.views import serve_media_file  # Import the view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('chat/', chat_message, name='chat_message'),
+    path('chat/clear/', chat_clear, name='chat_clear'),
+    path('chat/history/', chat_history, name='chat_history'),
     path('', include('collection.urls')),
-    
+
     # Media serving URL pattern
     path('media/<path:path>', serve_media_file, name='serve_media'),
 ]

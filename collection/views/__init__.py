@@ -46,3 +46,7 @@ from .import_views import (
 from .ref_views import (
     nine_mm_guide, collection_highlights
 )
+
+from .chat_views import (
+    chat_message, chat_clear, chat_history,
+)

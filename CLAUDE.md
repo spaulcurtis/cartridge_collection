@@ -143,6 +143,51 @@ No `.env` file is needed for local SQLite development.
 - The `Box` model uses GenericForeignKey to attach to any parent entity type
 - Lookup tables (LoadType, BulletType, etc.) have an `is_common` flag for UI filtering
 
+## LLM Integration — Vision and Plan
+
+### Long-Term Vision
+
+Build a domain-specific AI expert that serves as a knowledgeable fellow collector — someone
+the user can have natural conversations with about cartridges, their collection, and the
+broader field. The LLM draws from three layers of knowledge:
+
+1. **The user's own collection** — the Django database, queried via tool calls to the ORM
+2. **Community and reference knowledge** — IAA (International Ammunition Association) forum
+   archives, digitized reference documents, and other curated sources
+3. **General knowledge** — the LLM's training data and live web search
+
+### Architecture
+
+- **Single floating chat widget** accessible from any page in the app
+- **Server-side API calls** — Django backend calls the Anthropic Claude API; API key stays secure
+- **Tool-calling pattern** — pre-built Python functions wrap Django ORM queries; the LLM
+  decides which tools to call based on the user's natural language input
+- **System prompt with persona** — the LLM acts as a knowledgeable fellow collector, not a
+  generic assistant
+- **UI help context** — a static UI guide document in the system prompt, enriched with the
+  current page context, enables the LLM to give specific navigation help
+
+### Implementation Sequence
+
+**Phase 1 — Foundation (near-term):**
+- Anthropic API key wired into Django settings via env var
+- Chat widget UI (floating, accessible from all pages)
+- Backend chat endpoint (Django view → Claude API)
+- Help system prompt (UI guide document)
+- Database query tools (search loads, browse hierarchy, etc.)
+
+**Phase 2 — Expanded Knowledge (medium-term):**
+- IAA forum as a searchable source
+- Digitized reference documents (PDF ingestion, stored as searchable text)
+- Additional tools for the LLM to query these sources
+
+**Phase 3 — Full Expert (long-term):**
+- Rich reference library accessible through both the UI and the LLM
+- Cross-referencing collection data against community knowledge
+- Potential: LLM-assisted data entry and identification from photos
+
+Each phase is independently useful — the user benefits from Phase 1 immediately.
+
 ## Testing
 
 No test suite currently exists. When testing changes, run the development server
